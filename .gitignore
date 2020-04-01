@@ -87,3 +87,9 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+data/
+src/cache
+src/eval
+.idea/
+.gitignore
