@@ -49,44 +49,45 @@ if __name__ == '__main__':
     di = MSRA15Importer('../data/MSRA15/')
     Seq0_1 = di.loadSequence('P0', shuffle=True, rng=rng, docom=False)
     Seq0_1 = Seq0_1._replace(name='P0_gt')
-    Seq0_2 = di.loadSequence('P0', shuffle=True, rng=rng, docom=True)
-    Seq0_2 = Seq0_2._replace(name='P0_com')
-    Seq1_1 = di.loadSequence('P1', shuffle=True, rng=rng, docom=False)
-    Seq1_1 = Seq1_1._replace(name='P1_gt')
-    Seq1_2 = di.loadSequence('P1', shuffle=True, rng=rng, docom=True)
-    Seq1_2 = Seq1_2._replace(name='P1_com')
-    Seq2_1 = di.loadSequence('P2', shuffle=True, rng=rng, docom=False)
-    Seq2_1 = Seq2_1._replace(name='P2_gt')
-    Seq2_2 = di.loadSequence('P2', shuffle=True, rng=rng, docom=True)
-    Seq2_2 = Seq2_2._replace(name='P2_com')
-    Seq3_1 = di.loadSequence('P3', shuffle=True, rng=rng, docom=False)
-    Seq3_1 = Seq3_1._replace(name='P3_gt')
-    Seq3_2 = di.loadSequence('P3', shuffle=True, rng=rng, docom=True)
-    Seq3_2 = Seq3_2._replace(name='P3_com')
-    Seq4_1 = di.loadSequence('P4', shuffle=True, rng=rng, docom=False)
-    Seq4_1 = Seq4_1._replace(name='P4_gt')
-    Seq4_2 = di.loadSequence('P4', shuffle=True, rng=rng, docom=True)
-    Seq4_2 = Seq4_2._replace(name='P4_com')
-    Seq5_1 = di.loadSequence('P5', shuffle=True, rng=rng, docom=False)
-    Seq5_1 = Seq5_1._replace(name='P5_gt')
-    Seq5_2 = di.loadSequence('P5', shuffle=True, rng=rng, docom=True)
-    Seq5_2 = Seq5_2._replace(name='P5_com')
-    Seq6_1 = di.loadSequence('P6', shuffle=True, rng=rng, docom=False)
-    Seq6_1 = Seq6_1._replace(name='P6_gt')
-    Seq6_2 = di.loadSequence('P6', shuffle=True, rng=rng, docom=True)
-    Seq6_2 = Seq6_2._replace(name='P6_com')
-    Seq7_1 = di.loadSequence('P7', shuffle=True, rng=rng, docom=False)
-    Seq7_1 = Seq7_1._replace(name='P7_gt')
-    Seq7_2 = di.loadSequence('P7', shuffle=True, rng=rng, docom=True)
-    Seq7_2 = Seq7_2._replace(name='P7_com')
-    Seq8_1 = di.loadSequence('P8', shuffle=True, rng=rng, docom=False)
-    Seq8_1 = Seq8_1._replace(name='P8_gt')
-    Seq8_2 = di.loadSequence('P8', shuffle=True, rng=rng, docom=True)
-    Seq8_2 = Seq8_2._replace(name='P8_com')
-    trainSeqs = [Seq0_1, Seq0_2, Seq1_1, Seq1_2, Seq2_1, Seq2_2, Seq3_1, Seq3_2,
-                 Seq4_1, Seq4_2, Seq5_1, Seq5_2, Seq6_1, Seq6_2, Seq7_1, Seq7_2,
-                 Seq8_1, Seq8_2]
+    # Seq0_2 = di.loadSequence('P0', shuffle=True, rng=rng, docom=True)
+    # Seq0_2 = Seq0_2._replace(name='P0_com')
+    # Seq1_1 = di.loadSequence('P1', shuffle=True, rng=rng, docom=False)
+    # Seq1_1 = Seq1_1._replace(name='P1_gt')
+    # Seq1_2 = di.loadSequence('P1', shuffle=True, rng=rng, docom=True)
+    # Seq1_2 = Seq1_2._replace(name='P1_com')
+    # Seq2_1 = di.loadSequence('P2', shuffle=True, rng=rng, docom=False)
+    # Seq2_1 = Seq2_1._replace(name='P2_gt')
+    # Seq2_2 = di.loadSequence('P2', shuffle=True, rng=rng, docom=True)
+    # Seq2_2 = Seq2_2._replace(name='P2_com')
+    # Seq3_1 = di.loadSequence('P3', shuffle=True, rng=rng, docom=False)
+    # Seq3_1 = Seq3_1._replace(name='P3_gt')
+    # Seq3_2 = di.loadSequence('P3', shuffle=True, rng=rng, docom=True)
+    # Seq3_2 = Seq3_2._replace(name='P3_com')
+    # Seq4_1 = di.loadSequence('P4', shuffle=True, rng=rng, docom=False)
+    # Seq4_1 = Seq4_1._replace(name='P4_gt')
+    # Seq4_2 = di.loadSequence('P4', shuffle=True, rng=rng, docom=True)
+    # Seq4_2 = Seq4_2._replace(name='P4_com')
+    # Seq5_1 = di.loadSequence('P5', shuffle=True, rng=rng, docom=False)
+    # Seq5_1 = Seq5_1._replace(name='P5_gt')
+    # Seq5_2 = di.loadSequence('P5', shuffle=True, rng=rng, docom=True)
+    # Seq5_2 = Seq5_2._replace(name='P5_com')
+    # Seq6_1 = di.loadSequence('P6', shuffle=True, rng=rng, docom=False)
+    # Seq6_1 = Seq6_1._replace(name='P6_gt')
+    # Seq6_2 = di.loadSequence('P6', shuffle=True, rng=rng, docom=True)
+    # Seq6_2 = Seq6_2._replace(name='P6_com')
+    # Seq7_1 = di.loadSequence('P7', shuffle=True, rng=rng, docom=False)
+    # Seq7_1 = Seq7_1._replace(name='P7_gt')
+    # Seq7_2 = di.loadSequence('P7', shuffle=True, rng=rng, docom=True)
+    # Seq7_2 = Seq7_2._replace(name='P7_com')
+    # Seq8_1 = di.loadSequence('P8', shuffle=True, rng=rng, docom=False)
+    # Seq8_1 = Seq8_1._replace(name='P8_gt')
+    # Seq8_2 = di.loadSequence('P8', shuffle=True, rng=rng, docom=True)
+    # Seq8_2 = Seq8_2._replace(name='P8_com')
+    # trainSeqs = [Seq0_1, Seq0_2, Seq1_1, Seq1_2, Seq2_1, Seq2_2, Seq3_1, Seq3_2,
+    #              Seq4_1, Seq4_2, Seq5_1, Seq5_2, Seq6_1, Seq6_2, Seq7_1, Seq7_2,
+    #              Seq8_1, Seq8_2]
 
+    trainSeqs = [Seq0_1]
     Seq_0 = di.loadSequence('P0', docom=True)
     testSeqs = [Seq_0]
 
@@ -183,6 +184,11 @@ if __name__ == '__main__':
     batchSize = 64
     poseNetParams = ScaleNetParams(type=1, nChan=nChannels, wIn=imgSizeW, hIn=imgSizeH, batchSize=batchSize,
                                    resizeFactor=2, numJoints=1, nDims=3)
+    # nChannels = 1
+    # imgSizeW = 128
+    # imgSizeH = 128
+    # poseNetParams = ScaleNetParams(type=1, nChan=nChannels, wIn=imgSizeW, hIn=imgSizeH, batchSize=batchSize,
+    #                                resizeFactor=2, numJoints=1, nDims=3)
     poseNet = ScaleNet(rng, cfgParams=poseNetParams)
 
     poseNetTrainerParams = ScaleNetTrainerParams()
@@ -208,35 +214,39 @@ if __name__ == '__main__':
                                    'train_gt3D': train_gt3D})
     poseNetTrainer.compileFunctions()
 
-    ###################################################################
-    # TRAIN
-    train_res = poseNetTrainer.train(n_epochs=100)
-    train_costs = train_res[0]
-    val_errs = train_res[2]
+    # ###################################################################
+    # # TRAIN
+    # train_res = poseNetTrainer.train(n_epochs=100)
+    # train_costs = train_res[0]
+    # val_errs = train_res[2]
+    #
+    # # plot cost
+    # fig = plt.figure()
+    # plt.semilogy(train_costs)
+    # plt.show(block=False)
+    # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_cost.png')
+    #
+    # fig = plt.figure()
+    # plt.semilogy(val_errs)
+    # plt.show(block=False)
+    # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_errs.png')
 
-    # plot cost
-    fig = plt.figure()
-    plt.semilogy(train_costs)
-    plt.show(block=False)
-    fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_cost.png')
-
-    fig = plt.figure()
-    plt.semilogy(val_errs)
-    plt.show(block=False)
-    fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_errs.png')
-
-    # save results
-    poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
-    # poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix,eval_prefix))
+    # # save results
+    # poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
+    poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix,eval_prefix))
 
     ####################################################
     # TEST
     print("Testing ...")
     gt3D = [j.gt3Dorig[di.crop_joint_idx].reshape(1, 3) for j in testSeqs[0].data]
     jts = poseNet.computeOutput([test_data, test_data2, test_data4])
+    # jts = poseNet.computeOutput([test_data, test_data, test_data])
     joints = []
     for i in xrange(test_data.shape[0]):
         joints.append(jts[i].reshape(1, 3)*(testSeqs[0].config['cube'][2]/2.) + testSeqs[0].data[i].com)
+    print "jts = {}".format(jts)
+    # 3D coordinates of the refined center = joints
+    print "joints = {}".format(joints)
 
     hpe = MSRAHandposeEvaluation(gt3D, joints)
     hpe.subfolder += '/'+eval_prefix+'/'

@@ -204,9 +204,9 @@ class HandDetector(object):
     def comToBounds(self, com, size):
         """
         Calculate boundaries, project to 3D, then add offset and backproject to 2D (ux, uy are canceled)
-        :param com: center of mass, in image coordinates (x,y,z), z in mm
-        :param size: (x,y,z) extent of the source crop volume in mm
-        :return: xstart, xend, ystart, yend, zstart, zend
+        :param com: center of mass, in image coordinates (x,y,z), z in mm, (x,y) in pxls
+        :param size: (x,y,z) extent of the source crop volume in mm [all x, y and z are in mm]
+        :return: xstart, xend, ystart, yend, zstart, zend [z in mm, (x,y) in pxls]
         """
         if numpy.isclose(com[2], 0.):
             print "Warning: CoM ill-defined!"
@@ -389,11 +389,10 @@ class HandDetector(object):
         """
 
         # print com, self.importer.jointImgTo3D(com)
-        # import matplotlib.pyplot as plt
-        # import matplotlib
-        # fig = plt.figure()
-        # ax = fig.add_subplot(111)
-        # ax.imshow(self.dpt, cmap=matplotlib.cm.jet)
+        import matplotlib.pyplot as plt
+        import matplotlib
+        fig, ax = plt.subplots()
+        ax.imshow(self.dpt, cmap=matplotlib.cm.jet)
 
         if len(size) != 3 or len(dsize) != 2:
             raise ValueError("Size must be 3D and dsize 2D bounding box")
@@ -406,25 +405,25 @@ class HandDetector(object):
 
         # crop patch from source
         cropped = self.getCrop(self.dpt, xstart, xend, ystart, yend, zstart, zend)
-        # ax.plot(com[0],com[1],marker='.')
+        ax.plot(com[0],com[1],marker='+', markersize=30)
 
         #############
         # for simulating COM within cube
         if docom is True:
-            com = self.calculateCoM(cropped)
+            com = self.calculateCoM(cropped) # calculate com of cropped image
             if numpy.allclose(com, 0.):
                 com[2] = cropped[cropped.shape[0]//2, cropped.shape[1]//2]
                 if numpy.isclose(com[2], 0):
                     com[2] = 300
             com[0] += xstart
             com[1] += ystart
-
+            # here we already have com wrt input depth map
             # calculate boundaries
             xstart, xend, ystart, yend, zstart, zend = self.comToBounds(com, size)
 
             # crop patch from source
             cropped = self.getCrop(self.dpt, xstart, xend, ystart, yend, zstart, zend)
-        # ax.plot(com[0],com[1],marker='x')
+        ax.plot(com[0],com[1],marker='x', markersize=30)
 
         ##############
         if docom is True and self.refineNet is not None and self.importer is not None:
@@ -440,8 +439,8 @@ class HandDetector(object):
             # crop patch from source
             cropped = self.getCrop(self.dpt, xstart, xend, ystart, yend, zstart, zend)
 
-        # ax.plot(com[0],com[1],marker='o')
-        # plt.show(block=True)
+        ax.plot(com[0],com[1],marker='o', c='r', markersize=10)
+        plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/com.png')
 
         #############
         wb = (xend - xstart)

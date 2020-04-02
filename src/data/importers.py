@@ -555,17 +555,8 @@ class MSRA15Importer(DepthImporter):
         self.detectorNet = detectorNet
         self.numJoints = 21
         self.crop_joint_idx = 5
-        self.default_cubes = {'P0': (200, 200, 200),
-                              'P1': (200, 200, 200),
-                              'P2': (200, 200, 200),
-                              'P3': (180, 180, 180),
-                              'P4': (180, 180, 180),
-                              'P5': (180, 180, 180),
-                              'P6': (170, 170, 170),
-                              'P7': (160, 160, 160),
-                              'P8': (150, 150, 150)}
-        self.sides = {'P0': 'right', 'P1': 'right', 'P2': 'right', 'P3': 'right', 'P4': 'right', 'P5': 'right',
-                      'P6': 'right', 'P7': 'right', 'P8': 'right'}
+        self.default_cubes = {'P0': (200, 200, 200)}
+        self.sides = {'P0': 'right'}
 
     def loadDepthMap(self, filename):
         """
@@ -706,7 +697,7 @@ class MSRA15Importer(DepthImporter):
                     print("Skipping image {}, no content".format(dptFileName))
                     continue
 
-                try:
+                try: #here we initialize the com with ground truth mcp middle finger of msra15 dataset [z in mm, (x,y) in pxls]
                     dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom)
                 except UserWarning:
                     print("Skipping image {}, no hand detected".format(dptFileName))
@@ -723,7 +714,7 @@ class MSRA15Importer(DepthImporter):
                 data.append(DepthFrame(dpt.astype(np.float32), gtorig, gtcrop, M, gt3Dorig, gt3Dcrop, com3D,
                                        dptFileName, subSeqName, self.sides[seqName], {}))
                 pbar.update(pi)
-                pi += 1
+                # pi += 1
 
             inputfile.close()
 
