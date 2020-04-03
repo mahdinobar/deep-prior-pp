@@ -441,7 +441,7 @@ class HandDetector(object):
 
         ax.plot(com[0],com[1],marker='o', c='r', markersize=10)
         plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/com.png')
-
+        plt.close()
         #############
         wb = (xend - xstart)
         hb = (yend - ystart)

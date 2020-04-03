@@ -47,8 +47,8 @@ if __name__ == '__main__':
     aug_modes = ['com', 'rot', 'none']  # 'sc',
 
     di = MSRA15Importer('../data/MSRA15/')
-    Seq0_1 = di.loadSequence('P0', shuffle=True, rng=rng, docom=False)
-    Seq0_1 = Seq0_1._replace(name='P0_gt')
+    # Seq0_1 = di.loadSequence('P0', shuffle=True, rng=rng, docom=False)
+    # Seq0_1 = Seq0_1._replace(name='P0_gt')
     # Seq0_2 = di.loadSequence('P0', shuffle=True, rng=rng, docom=True)
     # Seq0_2 = Seq0_2._replace(name='P0_com')
     # Seq1_1 = di.loadSequence('P1', shuffle=True, rng=rng, docom=False)
@@ -87,40 +87,40 @@ if __name__ == '__main__':
     #              Seq4_1, Seq4_2, Seq5_1, Seq5_2, Seq6_1, Seq6_2, Seq7_1, Seq7_2,
     #              Seq8_1, Seq8_2]
 
-    trainSeqs = [Seq0_1]
+    # trainSeqs = [Seq0_1]
     Seq_0 = di.loadSequence('P0', docom=True)
     testSeqs = [Seq_0]
 
-    # create training data
-    trainDataSet = MSRA15Dataset(trainSeqs, localCache=False)
-    nSamp = numpy.sum([len(s.data) for s in trainSeqs])
-    d1, g1 = trainDataSet.imgStackDepthOnly(trainSeqs[0].name)
-    train_data = numpy.ones((nSamp, d1.shape[1], d1.shape[2], d1.shape[3]), dtype='float32')
-    train_gt3D = numpy.ones((nSamp, g1.shape[1], g1.shape[2]), dtype='float32')
-    train_data_com = numpy.ones((nSamp, 3), dtype='float32')
-    train_data_M = numpy.ones((nSamp, 3, 3), dtype='float32')
-    train_data_cube = numpy.ones((nSamp, 3), dtype='float32')
-    del d1, g1
-    gc.collect()
-    gc.collect()
-    gc.collect()
-    oldIdx = 0
-    for seq in trainSeqs:
-        d, g = trainDataSet.imgStackDepthOnly(seq.name)
-        train_data[oldIdx:oldIdx+d.shape[0]] = d
-        train_gt3D[oldIdx:oldIdx+d.shape[0]] = g
-        train_data_com[oldIdx:oldIdx+d.shape[0]] = numpy.asarray([da.com for da in seq.data])
-        train_data_M[oldIdx:oldIdx+d.shape[0]] = numpy.asarray([da.T for da in seq.data])
-        train_data_cube[oldIdx:oldIdx+d.shape[0]] = numpy.asarray([seq.config['cube']]*d.shape[0])
-        oldIdx += d.shape[0]
-        del d, g
-        gc.collect()
-        gc.collect()
-        gc.collect()
-    shuffle_many_inplace([train_data, train_gt3D, train_data_com, train_data_cube, train_data_M], random_state=rng)
-
-    mb = (train_data.nbytes) / (1024 * 1024)
-    print("data size: {}Mb".format(mb))
+    # # create training data
+    # trainDataSet = MSRA15Dataset(trainSeqs, localCache=False)
+    # nSamp = numpy.sum([len(s.data) for s in trainSeqs])
+    # d1, g1 = trainDataSet.imgStackDepthOnly(trainSeqs[0].name)
+    # train_data = numpy.ones((nSamp, d1.shape[1], d1.shape[2], d1.shape[3]), dtype='float32')
+    # train_gt3D = numpy.ones((nSamp, g1.shape[1], g1.shape[2]), dtype='float32')
+    # train_data_com = numpy.ones((nSamp, 3), dtype='float32')
+    # train_data_M = numpy.ones((nSamp, 3, 3), dtype='float32')
+    # train_data_cube = numpy.ones((nSamp, 3), dtype='float32')
+    # del d1, g1
+    # gc.collect()
+    # gc.collect()
+    # gc.collect()
+    # oldIdx = 0
+    # for seq in trainSeqs:
+    #     d, g = trainDataSet.imgStackDepthOnly(seq.name)
+    #     train_data[oldIdx:oldIdx+d.shape[0]] = d
+    #     train_gt3D[oldIdx:oldIdx+d.shape[0]] = g
+    #     train_data_com[oldIdx:oldIdx+d.shape[0]] = numpy.asarray([da.com for da in seq.data])
+    #     train_data_M[oldIdx:oldIdx+d.shape[0]] = numpy.asarray([da.T for da in seq.data])
+    #     train_data_cube[oldIdx:oldIdx+d.shape[0]] = numpy.asarray([seq.config['cube']]*d.shape[0])
+    #     oldIdx += d.shape[0]
+    #     del d, g
+    #     gc.collect()
+    #     gc.collect()
+    #     gc.collect()
+    # shuffle_many_inplace([train_data, train_gt3D, train_data_com, train_data_cube, train_data_M], random_state=rng)
+    #
+    # mb = (train_data.nbytes) / (1024 * 1024)
+    # print("data size: {}Mb".format(mb))
 
     testDataSet = MSRA15Dataset(testSeqs)
     test_data, test_gt3D = testDataSet.imgStackDepthOnly(testSeqs[0].name)
@@ -129,90 +129,90 @@ if __name__ == '__main__':
     val_gt3D = test_gt3D
 
     ####################################
-    # resize data
-    dsize = (int(train_data.shape[2]//2), int(train_data.shape[3]//2))
-    xstart = int(train_data.shape[2]/2-dsize[0]/2)
-    xend = xstart + dsize[0]
-    ystart = int(train_data.shape[3]/2-dsize[1]/2)
-    yend = ystart + dsize[1]
-    train_data2 = train_data[:, :, ystart:yend, xstart:xend]
-
-    dsize = (int(train_data.shape[2]//4), int(train_data.shape[3]//4))
-    xstart = int(train_data.shape[2]/2-dsize[0]/2)
-    xend = xstart + dsize[0]
-    ystart = int(train_data.shape[3]/2-dsize[1]/2)
-    yend = ystart + dsize[1]
-    train_data4 = train_data[:, :, ystart:yend, xstart:xend]
-
-    dsize = (int(train_data.shape[2]//2), int(train_data.shape[3]//2))
-    xstart = int(train_data.shape[2]/2-dsize[0]/2)
-    xend = xstart + dsize[0]
-    ystart = int(train_data.shape[3]/2-dsize[1]/2)
-    yend = ystart + dsize[1]
-    val_data2 = val_data[:, :, ystart:yend, xstart:xend]
-
-    dsize = (int(train_data.shape[2]//4), int(train_data.shape[3]//4))
-    xstart = int(train_data.shape[2]/2-dsize[0]/2)
-    xend = xstart + dsize[0]
-    ystart = int(train_data.shape[3]/2-dsize[1]/2)
-    yend = ystart + dsize[1]
-    val_data4 = val_data[:, :, ystart:yend, xstart:xend]
-
-    dsize = (int(train_data.shape[2]//2), int(train_data.shape[3]//2))
-    xstart = int(train_data.shape[2]/2-dsize[0]/2)
-    xend = xstart + dsize[0]
-    ystart = int(train_data.shape[3]/2-dsize[1]/2)
-    yend = ystart + dsize[1]
-    test_data2 = test_data[:, :, ystart:yend, xstart:xend]
-
-    dsize = (int(train_data.shape[2]//4), int(train_data.shape[3]//4))
-    xstart = int(train_data.shape[2]/2-dsize[0]/2)
-    xend = xstart + dsize[0]
-    ystart = int(train_data.shape[3]/2-dsize[1]/2)
-    yend = ystart + dsize[1]
-    test_data4 = test_data[:, :, ystart:yend, xstart:xend]
-
-    print train_gt3D.max(), test_gt3D.max(), train_gt3D.min(), test_gt3D.min()
-    print train_data.max(), test_data.max(), train_data.min(), test_data.min()
-
-    imgSizeW = train_data.shape[3]
-    imgSizeH = train_data.shape[2]
-    nChannels = train_data.shape[1]
+    # # resize data
+    # dsize = (int(train_data.shape[2]//2), int(train_data.shape[3]//2))
+    # xstart = int(train_data.shape[2]/2-dsize[0]/2)
+    # xend = xstart + dsize[0]
+    # ystart = int(train_data.shape[3]/2-dsize[1]/2)
+    # yend = ystart + dsize[1]
+    # train_data2 = train_data[:, :, ystart:yend, xstart:xend]
+    #
+    # dsize = (int(train_data.shape[2]//4), int(train_data.shape[3]//4))
+    # xstart = int(train_data.shape[2]/2-dsize[0]/2)
+    # xend = xstart + dsize[0]
+    # ystart = int(train_data.shape[3]/2-dsize[1]/2)
+    # yend = ystart + dsize[1]
+    # train_data4 = train_data[:, :, ystart:yend, xstart:xend]
+    #
+    # dsize = (int(train_data.shape[2]//2), int(train_data.shape[3]//2))
+    # xstart = int(train_data.shape[2]/2-dsize[0]/2)
+    # xend = xstart + dsize[0]
+    # ystart = int(train_data.shape[3]/2-dsize[1]/2)
+    # yend = ystart + dsize[1]
+    # val_data2 = val_data[:, :, ystart:yend, xstart:xend]
+    #
+    # dsize = (int(train_data.shape[2]//4), int(train_data.shape[3]//4))
+    # xstart = int(train_data.shape[2]/2-dsize[0]/2)
+    # xend = xstart + dsize[0]
+    # ystart = int(train_data.shape[3]/2-dsize[1]/2)
+    # yend = ystart + dsize[1]
+    # val_data4 = val_data[:, :, ystart:yend, xstart:xend]
+    #
+    # dsize = (int(train_data.shape[2]//2), int(train_data.shape[3]//2))
+    # xstart = int(train_data.shape[2]/2-dsize[0]/2)
+    # xend = xstart + dsize[0]
+    # ystart = int(train_data.shape[3]/2-dsize[1]/2)
+    # yend = ystart + dsize[1]
+    # test_data2 = test_data[:, :, ystart:yend, xstart:xend]
+    #
+    # dsize = (int(train_data.shape[2]//4), int(train_data.shape[3]//4))
+    # xstart = int(train_data.shape[2]/2-dsize[0]/2)
+    # xend = xstart + dsize[0]
+    # ystart = int(train_data.shape[3]/2-dsize[1]/2)
+    # yend = ystart + dsize[1]
+    # test_data4 = test_data[:, :, ystart:yend, xstart:xend]
+    #
+    # print train_gt3D.max(), test_gt3D.max(), train_gt3D.min(), test_gt3D.min()
+    # print train_data.max(), test_data.max(), train_data.min(), test_data.min()
+    #
+    # imgSizeW = train_data.shape[3]
+    # imgSizeH = train_data.shape[2]
+    # nChannels = train_data.shape[1]
 
     #############################################################################
     print("create network")
     batchSize = 64
-    poseNetParams = ScaleNetParams(type=1, nChan=nChannels, wIn=imgSizeW, hIn=imgSizeH, batchSize=batchSize,
-                                   resizeFactor=2, numJoints=1, nDims=3)
-    # nChannels = 1
-    # imgSizeW = 128
-    # imgSizeH = 128
     # poseNetParams = ScaleNetParams(type=1, nChan=nChannels, wIn=imgSizeW, hIn=imgSizeH, batchSize=batchSize,
     #                                resizeFactor=2, numJoints=1, nDims=3)
+    nChannels = 1
+    imgSizeW = 128
+    imgSizeH = 128
+    poseNetParams = ScaleNetParams(type=1, nChan=nChannels, wIn=imgSizeW, hIn=imgSizeH, batchSize=batchSize,
+                                   resizeFactor=2, numJoints=1, nDims=3)
     poseNet = ScaleNet(rng, cfgParams=poseNetParams)
 
-    poseNetTrainerParams = ScaleNetTrainerParams()
-    poseNetTrainerParams.use_early_stopping = False
-    poseNetTrainerParams.batch_size = batchSize
-    poseNetTrainerParams.learning_rate = 0.0005
-    poseNetTrainerParams.weightreg_factor = 0.0001
-    poseNetTrainerParams.force_macrobatch_reload = True
-    poseNetTrainerParams.para_augment = True
-    poseNetTrainerParams.augment_fun_params = {'fun': 'augment_poses', 'args': {'normZeroOne': False,
-                                                                                'di': di,
-                                                                                'aug_modes': aug_modes,
-                                                                                'hd': HandDetector(train_data[0, 0].copy(), abs(di.fx), abs(di.fy), importer=di)}}
-
-    print("setup trainer")
-    poseNetTrainer = ScaleNetTrainer(poseNet, poseNetTrainerParams, rng, './eval/'+eval_prefix)
-    poseNetTrainer.setData(train_data, train_gt3D[:, di.crop_joint_idx, :], val_data, val_gt3D[:, di.crop_joint_idx, :])
-    poseNetTrainer.addStaticData({'val_data_x1': val_data2, 'val_data_x2': val_data4})
-    poseNetTrainer.addManagedData({'train_data_x1': train_data2, 'train_data_x2': train_data4})
-    poseNetTrainer.addManagedData({'train_data_com': train_data_com,
-                                   'train_data_cube': train_data_cube,
-                                   'train_data_M': train_data_M,
-                                   'train_gt3D': train_gt3D})
-    poseNetTrainer.compileFunctions()
+    # poseNetTrainerParams = ScaleNetTrainerParams()
+    # poseNetTrainerParams.use_early_stopping = False
+    # poseNetTrainerParams.batch_size = batchSize
+    # poseNetTrainerParams.learning_rate = 0.0005
+    # poseNetTrainerParams.weightreg_factor = 0.0001
+    # poseNetTrainerParams.force_macrobatch_reload = True
+    # poseNetTrainerParams.para_augment = True
+    # poseNetTrainerParams.augment_fun_params = {'fun': 'augment_poses', 'args': {'normZeroOne': False,
+    #                                                                             'di': di,
+    #                                                                             'aug_modes': aug_modes,
+    #                                                                             'hd': HandDetector(train_data[0, 0].copy(), abs(di.fx), abs(di.fy), importer=di)}}
+    #
+    # print("setup trainer")
+    # poseNetTrainer = ScaleNetTrainer(poseNet, poseNetTrainerParams, rng, './eval/'+eval_prefix)
+    # poseNetTrainer.setData(train_data, train_gt3D[:, di.crop_joint_idx, :], val_data, val_gt3D[:, di.crop_joint_idx, :])
+    # poseNetTrainer.addStaticData({'val_data_x1': val_data2, 'val_data_x2': val_data4})
+    # poseNetTrainer.addManagedData({'train_data_x1': train_data2, 'train_data_x2': train_data4})
+    # poseNetTrainer.addManagedData({'train_data_com': train_data_com,
+    #                                'train_data_cube': train_data_cube,
+    #                                'train_data_M': train_data_M,
+    #                                'train_gt3D': train_gt3D})
+    # poseNetTrainer.compileFunctions()
 
     # ###################################################################
     # # TRAIN
@@ -239,14 +239,58 @@ if __name__ == '__main__':
     # TEST
     print("Testing ...")
     gt3D = [j.gt3Dorig[di.crop_joint_idx].reshape(1, 3) for j in testSeqs[0].data]
-    jts = poseNet.computeOutput([test_data, test_data2, test_data4])
-    # jts = poseNet.computeOutput([test_data, test_data, test_data])
+    # jts = poseNet.computeOutput([test_data, test_data2, test_data4])
+    jts = poseNet.computeOutput([test_data, test_data[:, :, 32:96, 32:96], test_data[:, :, 48:80, 48:80]])
     joints = []
     for i in xrange(test_data.shape[0]):
         joints.append(jts[i].reshape(1, 3)*(testSeqs[0].config['cube'][2]/2.) + testSeqs[0].data[i].com)
     print "jts = {}".format(jts)
     # 3D coordinates of the refined center = joints
     print "joints = {}".format(joints)
+########################################################################################################################
+    # plot
+    import matplotlib.pyplot as plt
+    import matplotlib
+    import numpy as np
+    fig, ax = plt.subplots()
+    ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+    # [158.13968  104.160515 304.667]
+    h = 128.
+    w = 128.
+    iw = 320.
+    ih = 240.
+    yscale = h / ih
+    xscale = w / iw
+    _fx = 241.42 * xscale
+    _fy = 241.42 * yscale
+    _ux = 160 * xscale
+    _uy = 120 * yscale
+
+    icom = np.empty((2, 1))
+    icom[0] = Seq_0.data[0].gtorig[5][0] * xscale
+    icom[1] = Seq_0.data[0].gtorig[5][1] * yscale
+    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=30, label='initial center: MSRA mcp middle finger joint')  # initial hand com in IMG
+
+    gt_com = np.empty((2, 1))
+    gt_com3D = Seq_0.data[0].com
+    gt_com[0] = gt_com3D[0] / gt_com3D[2] * _fx + _ux
+    gt_com[1] = gt_com3D[1] / gt_com3D[2] * _fy + _uy
+    ax.scatter(gt_com[0], gt_com[1], marker='+', c='blue', s=30, label='ground truth refined hand center')  # initial hand com in IMG
+
+    refined_com = np.empty((2, 1))
+    refined_com3D = joints[0][0]
+    refined_com[0] = refined_com3D[0] / refined_com3D[2] * _fx + _ux
+    refined_com[1] = refined_com3D[1] / refined_com3D[2] * _fy + _uy
+    ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=30, label='refined hand center posenet estimation')  # initial hand com in IMG
+    # ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+    ax.legend()
+
+
+    plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+
+########################################################################################################################
+
+
 
     hpe = MSRAHandposeEvaluation(gt3D, joints)
     hpe.subfolder += '/'+eval_prefix+'/'
