@@ -54,11 +54,12 @@ class HandDetector(object):
         :param fy: camera focal lenght
         """
         self.dpt = dpt
-        self.maxDepth = min(1500, dpt.max())
+        self.maxDepth = min(400, dpt.max())
         self.minDepth = max(10, dpt.min())
         # set values out of range to 0
         self.dpt[self.dpt > self.maxDepth] = 0.
-        self.dpt[self.dpt < self.minDepth] = 0.
+        # self.dpt[self.dpt < self.minDepth] = 0.
+
         # camera settings
         self.fx = fx
         self.fy = fy

@@ -32,14 +32,16 @@ from data.basetypes import DepthFrame, NamedImgSequence
 from util.handdetector import HandDetector
 from data.transformations import transformPoints2D
 import cPickle
+import open3d as o3d
+from PIL import Image
 
-__author__ = "Paul Wohlhart <wohlhart@icg.tugraz.at>, Markus Oberweger <oberweger@icg.tugraz.at>"
-__copyright__ = "Copyright 2015, ICG, Graz University of Technology, Austria"
-__credits__ = ["Paul Wohlhart", "Markus Oberweger"]
-__license__ = "GPL"
+__author__ = "Mahdi Nobar <mahdi.nobar@epfl.ch>"
+__copyright__ = "Copyright 2020, EPFL"
+__credits__ = ["Mahdi Nobar"]
+__license__ = "confidential"
 __version__ = "1.0"
 __maintainer__ = "Markus Oberweger"
-__email__ = "oberweger@icg.tugraz.at"
+__email__ = "mahdi.nobar@epfl.ch"
 __status__ = "Development"
 
 
@@ -525,6 +527,372 @@ class ICVLImporter(DepthImporter):
 
         plt.show()
 
+class iPhoneImporter(DepthImporter):
+    """
+    provide functionality to load data from iPhone Truedepth
+
+    """
+
+    def __init__(self, basepath, useCache=True, cacheDir='./cache/', refineNet=None, detectorNet=None, derotNet=None, hand=None):
+        """
+        Constructor
+        :param basepath: base path of the iPhone Truedepth
+        :return:
+        """
+        # iPhone calibration
+        _h = 240
+        _w = 320
+        iw = 3088.0
+        ih = 2316.0
+        xscale = _h / ih
+        yscale = _w / iw
+        _fx = 2880.0796 * xscale
+        _fy = 2880.0796 * yscale
+        # _cx = 1546.5824 * xscale
+        # _cy = 1153.2035 * yscale
+        _cx = 1153.2035 * xscale
+        _cy = 1546.5824 * yscale
+        super(iPhoneImporter, self).__init__(_fx, _fy, _cy, _cx, hand)  # see Sun et.al.
+
+        self.depth_map_size = (320, 240)
+        self.basepath = basepath
+        self.useCache = useCache
+        self.cacheDir = cacheDir
+        self.refineNet = refineNet
+        self.derotNet = derotNet
+        self.detectorNet = detectorNet
+        self.numJoints = 21
+        self.crop_joint_idx = 5
+        self.default_cubes = {'P0': (200, 200, 200)}
+        self.sides = {'P0': 'right'}
+
+    def loadDepthMap(self, filename):
+        """
+        Read a depth-map in bin format of msra15
+        :param filename: file name to load
+        :return: image data of depth image in mm for msra15 and image shape(240by320)
+        """
+# temporary: must be changed ###########################################################################################
+        color_raw = o3d.io.read_image('/home/mahdi/HVR/hvr/hand_pcl_iPhone/Tom_set_2/iPhone/hand30wall50_color.png')
+        depth_raw = o3d.io.read_image(filename)
+        color_raw = o3d.geometry.Image(np.asarray(color_raw))
+        rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+            color_raw, depth_raw, depth_scale=0.529, depth_trunc=30.0, convert_rgb_to_intensity=False)
+        # iPhone calibration
+        h = np.asarray(color_raw).shape[0]  # 480
+        w = np.asarray(color_raw).shape[1]  # 640
+        iw = 3088.0
+        ih = 2316.0
+        xscale = h / ih
+        yscale = w / iw
+        _fx = 2880.0796 * xscale
+        _fy = 2880.0796 * yscale
+        # _cx = 1546.5824 * xscale
+        # _cy = 1153.2035 * yscale
+        _cx = 1153.2035 * xscale
+        _cy = 1546.5824 * yscale
+        setIntrinsic = o3d.camera.PinholeCameraIntrinsic()
+        setIntrinsic.set_intrinsics(width=w, height=h, fx=_fx, fy=_fy, cx=_cx, cy=_cy)
+        pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+            rgbd_image,
+            setIntrinsic)
+        # Flip it, otherwise the pointcloud will be upside down
+        pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+        z_values = (-np.asarray(pcd.points)[:, 2] * 1000)  # in mm
+        depth_map = np.reshape(z_values, (480, 640))
+        imgdata = np.asarray(Image.fromarray(depth_map).resize((320, 240)))
+# temporary: must be changed ###########################################################################################
+        return np.copy(imgdata)
+
+    def getDepthMapNV(self):
+        """
+        Get the value of invalid depth values in the depth map
+        :return: value
+        """
+        return 32001
+
+    def loadSequence(self, seqName, subSeq=None, Nmax=float('inf'), shuffle=False, rng=None, docom=False, cube=None):
+        """
+        Load an image sequence from the dataset
+        :param seqName: sequence name, e.g. subject1
+        :param Nmax: maximum number of samples to load
+        :return: returns named image sequence
+        """
+
+        if (subSeq is not None) and (not isinstance(subSeq, list)):
+            raise TypeError("subSeq must be None or list")
+
+        if cube is None:
+            config = {'cube': self.default_cubes[seqName]}
+        else:
+            assert isinstance(cube, tuple)
+            assert len(cube) == 3
+            config = {'cube': cube}
+
+        if subSeq is None:
+            pickleCache = '{}/{}_{}_{}_{}_{}_cache.pkl'.format(self.cacheDir, self.__class__.__name__, seqName, self.hand,
+                                                               HandDetector.detectionModeToString(docom, self.refineNet is not None), config['cube'][0])
+        else:
+            pickleCache = '{}/{}_{}_{}_{}_{}_{}_cache.pkl'.format(self.cacheDir, self.__class__.__name__, seqName, self.hand,
+                                                               ''.join(subSeq), HandDetector.detectionModeToString(docom, self.refineNet is not None), config['cube'][0])
+        if self.useCache & os.path.isfile(pickleCache):
+            print("Loading cache data from {}".format(pickleCache))
+            f = open(pickleCache, 'rb')
+            (seqName, data, config) = cPickle.load(f)
+            f.close()
+            # shuffle data
+            if shuffle and rng is not None:
+                print("Shuffling")
+                rng.shuffle(data)
+            if not(np.isinf(Nmax)):
+                return NamedImgSequence(seqName, data[0:Nmax], config)
+            else:
+                return NamedImgSequence(seqName, data, config)
+
+        self.loadRefineNetLazy(self.refineNet)
+
+        # Load the dataset
+        objdir = '{}/{}/'.format(self.basepath, seqName)
+        subdirs = sorted([name for name in os.listdir(objdir) if os.path.isdir(os.path.join(objdir, name))])
+
+        txt = 'Loading {}'.format(seqName)
+        nImgs = sum([len(files) for r, d, files in os.walk(objdir)]) // 2
+        pbar = pb.ProgressBar(maxval=nImgs, widgets=[txt, pb.Percentage(), pb.Bar()])
+        pbar.start()
+
+        data = []
+        pi = 0
+        for subdir in subdirs:
+            # check for subsequences and skip them if necessary
+            subSeqName = ''
+            if subSeq is not None:
+                if subdir not in subSeq:
+                    continue
+
+                subSeqName = subdir
+
+            # iterate all subdirectories
+            trainlabels = '{}/{}/joint.txt'.format(objdir, subdir)
+
+            inputfile = open(trainlabels)
+            # read number of samples
+            nImgs = int(inputfile.readline())
+
+            for i in range(nImgs):
+                # early stop
+                if len(data) >= Nmax:
+                    break
+
+                line = inputfile.readline()
+                part = line.split(' ')
+
+                # dptFileName = '{}/{}/{}_depth.bin'.format(objdir, subdir, str(i).zfill(6))
+                dptFileName = '{}/{}/{}_depth.png'.format(objdir, subdir, 'hand30wall50')
+
+                if not os.path.isfile(dptFileName):
+                    print("File {} does not exist!".format(dptFileName))
+                    continue
+                dpt = self.loadDepthMap(dptFileName)
+
+                # joints in image coordinates
+                gt3Dorig = np.zeros((self.numJoints, 3), np.float32)
+                for joint in range(gt3Dorig.shape[0]):
+                    for xyz in range(0, 3):
+                        gt3Dorig[joint, xyz] = part[joint*3+xyz]
+
+                # invert axis
+                # gt3Dorig[:, 0] *= (-1.)
+                # gt3Dorig[:, 1] *= (-1.)
+                gt3Dorig[:, 2] *= (-1.)
+
+                # normalized joints in 3D coordinates
+                gtorig = self.joints3DToImg(gt3Dorig)
+
+                if self.hand is not None:
+                    if self.hand != self.sides[seqName]:
+                        gtorig[:, 0] -= dpt.shape[1] / 2.
+                        gtorig[:, 0] *= (-1)
+                        gtorig[:, 0] += dpt.shape[1] / 2.
+                        gt3Dorig = self.jointsImgTo3D(gtorig)
+                        dpt = dpt[:, ::-1]
+
+                # print gt3D
+                # self.showAnnotatedDepth(DepthFrame(dpt,gtorig,gtorig,0,gt3Dorig,gt3Dcrop,com3D,dptFileName,'',''))
+                # Detect hand
+                hd = HandDetector(dpt, self.fx, self.fy, refineNet=self.refineNet, importer=self)
+                if not hd.checkImage(1.):
+                    print("Skipping image {}, no content".format(dptFileName))
+                    continue
+
+                try: #here we initialize the com with ground truth mcp middle finger of msra15 dataset [z in mm, (x,y) in pxls]
+                    dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom)
+                except UserWarning:
+                    print("Skipping image {}, no hand detected".format(dptFileName))
+                    continue
+
+                com3D = self.jointImgTo3D(com)
+                gt3Dcrop = gt3Dorig - com3D  # normalize to com
+
+                gtcrop = transformPoints2D(gtorig, M)
+
+                # print("{}".format(gt3Dorig))
+                # self.showAnnotatedDepth(DepthFrame(dpt,gtorig,gtcrop,M,gt3Dorig,gt3Dcrop,com3D,dptFileName,'','',{}))
+
+                data.append(DepthFrame(dpt.astype(np.float32), gtorig, gtcrop, M, gt3Dorig, gt3Dcrop, com3D,
+                                       dptFileName, subSeqName, self.sides[seqName], {}))
+                pbar.update(pi)
+                # pi += 1
+
+            inputfile.close()
+
+        pbar.finish()
+        print("Loaded {} samples.".format(len(data)))
+
+        if self.useCache:
+            print("Save cache data to {}".format(pickleCache))
+            f = open(pickleCache, 'wb')
+            cPickle.dump((seqName, data, config), f, protocol=cPickle.HIGHEST_PROTOCOL)
+            f.close()
+
+        # shuffle data
+        if shuffle and rng is not None:
+            print("Shuffling")
+            rng.shuffle(data)
+        return NamedImgSequence(seqName, data, config)
+
+    def jointsImgTo3D(self, sample):
+        """
+        Normalize sample to metric 3D
+        :param sample: joints in (x,y,z) with x,y in image coordinates and z in mm
+        :return: normalized joints in mm
+        """
+        ret = np.zeros((sample.shape[0], 3), np.float32)
+        for i in xrange(sample.shape[0]):
+            ret[i] = self.jointImgTo3D(sample[i])
+        return ret
+
+    def jointImgTo3D(self, sample):
+        """
+        Normalize sample to metric 3D
+        :param sample: joints in (x,y,z) with x,y in image coordinates and z in mm
+        :return: normalized joints in mm
+        """
+        ret = np.zeros((3,), np.float32)
+        ret[0] = (sample[0] - self.ux) * sample[2] / self.fx
+        ret[1] = (self.uy - sample[1]) * sample[2] / self.fy
+        ret[2] = sample[2]
+        return ret
+
+    def joints3DToImg(self, sample):
+        """
+        Denormalize sample from metric 3D to image coordinates
+        :param sample: joints in (x,y,z) with x,y and z in mm
+        :return: joints in (x,y,z) with x,y in image coordinates and z in mm
+        """
+        ret = np.zeros((sample.shape[0], 3), np.float32)
+        for i in xrange(sample.shape[0]):
+            ret[i] = self.joint3DToImg(sample[i])
+        return ret
+
+    def joint3DToImg(self, sample):
+        """
+        Denormalize sample from metric 3D to image coordinates
+        :param sample: joints in (x,y,z) with x,y and z in mm
+        :return: joints in (x,y,z) with x,y in image coordinates and z in mm
+        """
+        ret = np.zeros((3, ), np.float32)
+        if sample[2] == 0.:
+            ret[0] = self.ux
+            ret[1] = self.uy
+            return ret
+        ret[0] = sample[0]/sample[2]*self.fx+self.ux
+        ret[1] = self.uy-sample[1]/sample[2]*self.fy
+        ret[2] = sample[2]
+        return ret
+
+    def getCameraIntrinsics(self):
+        """
+        Get intrinsic camera matrix
+        :return: 3x3 intrinsic camera matrix
+        """
+        ret = np.zeros((3, 3), np.float32)
+        ret[0, 0] = self.fx
+        ret[1, 1] = -self.fy
+        ret[2, 2] = 1
+        ret[0, 2] = self.ux
+        ret[1, 2] = self.uy
+        return ret
+
+    def getCameraProjection(self):
+        """
+        Get homogenous camera projection matrix
+        :return: 4x4 camera projection matrix
+        """
+        ret = np.zeros((4, 4), np.float32)
+        ret[0, 0] = self.fx
+        ret[1, 1] = -self.fy
+        ret[2, 2] = 1.
+        ret[0, 2] = self.ux
+        ret[1, 2] = self.uy
+        ret[3, 2] = 1.
+        return ret
+
+    def showAnnotatedDepth(self, frame):
+        """
+        Show the depth image
+        :param frame: image to show
+        :return:
+        """
+        import matplotlib
+        import matplotlib.pyplot as plt
+
+        print("img min {}, max {}".format(frame.dpt.min(),frame.dpt.max()))
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.imshow(frame.dpt, cmap=matplotlib.cm.jet, interpolation='nearest')
+        ax.scatter(frame.gtcrop[:, 0], frame.gtcrop[:, 1])
+
+        ax.plot(frame.gtcrop[0:5, 0], frame.gtcrop[0:5, 1], c='r')
+        ax.plot(np.hstack((frame.gtcrop[0, 0], frame.gtcrop[5:9, 0])), np.hstack((frame.gtcrop[0, 1], frame.gtcrop[5:9, 1])), c='r')
+        ax.plot(np.hstack((frame.gtcrop[0, 0], frame.gtcrop[9:13, 0])), np.hstack((frame.gtcrop[0, 1], frame.gtcrop[9:13, 1])), c='r')
+        ax.plot(np.hstack((frame.gtcrop[0, 0], frame.gtcrop[13:17, 0])), np.hstack((frame.gtcrop[0, 1], frame.gtcrop[13:17, 1])), c='r')
+        ax.plot(np.hstack((frame.gtcrop[0, 0], frame.gtcrop[17:21, 0])), np.hstack((frame.gtcrop[0, 1], frame.gtcrop[17:21, 1])), c='r')
+
+        def format_coord(x, y):
+            numrows, numcols = frame.dpt.shape
+            col = int(x+0.5)
+            row = int(y+0.5)
+            if 0 <= col < numcols and 0 <= row < numrows:
+                z = frame.dpt[row, col]
+                return 'x=%1.4f, y=%1.4f, z=%1.4f'%(x, y, z)
+            else:
+                return 'x=%1.4f, y=%1.4f'%(x, y)
+        ax.format_coord = format_coord
+
+        for i in range(frame.gtcrop.shape[0]):
+            ax.annotate(str(i), (int(frame.gtcrop[i, 0]), int(frame.gtcrop[i, 1])))
+
+        plt.show()
+
+    @staticmethod
+    def depthToPCL(dpt, T, background_val=0.):
+
+        # get valid points and transform
+        pts = np.asarray(np.where(~np.isclose(dpt, background_val))).transpose()
+        pts = np.concatenate([pts[:, [1, 0]] + 0.5, np.ones((pts.shape[0], 1), dtype='float32')], axis=1)
+        pts = np.dot(np.linalg.inv(np.asarray(T)), pts.T).T
+        pts = (pts[:, 0:2] / pts[:, 2][:, None]).reshape((pts.shape[0], 2))
+
+        # replace the invalid data
+        depth = dpt[(~np.isclose(dpt, background_val))]
+
+        # get x and y data in a vectorized way
+        row = (pts[:, 0] - 160.) / 241.42 * depth
+        col = (120. - pts[:, 1]) / 241.42 * depth
+
+        # combine x,y,depth
+        return np.column_stack((row, col, depth))
+
 
 class MSRA15Importer(DepthImporter):
     """
@@ -560,9 +928,9 @@ class MSRA15Importer(DepthImporter):
 
     def loadDepthMap(self, filename):
         """
-        Read a depth-map
+        Read a depth-map in bin format of msra15
         :param filename: file name to load
-        :return: image data of depth image
+        :return: image data of depth image in mm for msra15 and image shape(240by320)
         """
         with open(filename, 'rb') as f:
             # first 6 uint define the full image

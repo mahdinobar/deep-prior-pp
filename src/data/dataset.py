@@ -23,7 +23,7 @@ along with DeepPrior.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import numpy
-from data.importers import NYUImporter, ICVLImporter, MSRA15Importer
+from data.importers import NYUImporter, ICVLImporter, MSRA15Importer, iPhoneImporter
 
 
 __author__ = "Paul Wohlhart <wohlhart@icg.tugraz.at>, Markus Oberweger <oberweger@icg.tugraz.at>"
@@ -121,6 +121,18 @@ class ICVLDataset(Dataset):
             basepath = '../../data/ICVL/'
 
         self.lmi = ICVLImporter(basepath)
+
+
+class iPhoneDataset(Dataset):
+    def __init__(self, imgSeqs=None, basepath=None, localCache=True):
+        """
+        constructor
+        """
+        super(iPhoneDataset, self).__init__(imgSeqs, localCache)
+        if basepath is None:
+            basepath = '../../data/iPhone/'
+
+        self.lmi = iPhoneImporter(basepath)
 
 
 class MSRA15Dataset(Dataset):
