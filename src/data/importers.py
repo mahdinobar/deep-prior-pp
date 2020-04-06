@@ -714,7 +714,7 @@ class iPhoneImporter(DepthImporter):
                 import matplotlib
                 fig, ax = plt.subplots()
                 ax.imshow(dpt, cmap=matplotlib.cm.jet)
-                ax.plot(gtorig[:, 0], gtorig[:,1], marker='+', markersize=30)
+                ax.plot(gtorig[:, 0], gtorig[:,1], marker='o', c='k', markersize=15)
                 plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
                 plt.close()
 ########################################################################################################################
@@ -1116,7 +1116,7 @@ class MSRA15Importer(DepthImporter):
                 import matplotlib
                 fig, ax = plt.subplots()
                 ax.imshow(dpt, cmap=matplotlib.cm.jet)
-                ax.plot(gtorig[:, 0], gtorig[:, 1], marker='+', markersize=30)
+                ax.plot(gtorig[:, 0], gtorig[:, 1], marker='o', c='k', markersize=15)
                 plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
                 plt.close()
                 ########################################################################################################################

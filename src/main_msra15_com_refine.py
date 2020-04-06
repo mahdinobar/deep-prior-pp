@@ -273,19 +273,18 @@ if __name__ == '__main__':
     icom[0] = Seq_0.data[0].gtcrop[5][0]
     icom[1] = Seq_0.data[0].gtcrop[5][1]
     ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: MSRA mcp middle finger joint')  # initial hand com in IMG
-    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=30, label='initial center: MSRA mcp middle finger joint')  # initial hand com in IMG
 
     gt_com = np.empty((2, 1))
     gt_com3D = Seq_0.data[0].com
     gt_com[0] = gt_com3D[0] / gt_com3D[2] * _fx + _ux
     gt_com[1] = gt_com3D[1] / gt_com3D[2] * _fy + _uy
-    ax.scatter(gt_com[0], gt_com[1], marker='+', c='blue', s=30, label='ground truth refined hand center')  # initial hand com in IMG
+    ax.scatter(gt_com[0], gt_com[1], marker='+', c='blue', s=100, label='ground truth refined hand center')  # initial hand com in IMG
 
     refined_com = np.empty((2, 1))
     refined_com3D = joints[0][0]
     refined_com[0] = refined_com3D[0] / refined_com3D[2] * _fx + _ux
     refined_com[1] = refined_com3D[1] / refined_com3D[2] * _fy + _uy
-    ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=30, label='refined hand center posenet estimation')  # initial hand com in IMG
+    ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=100, label='refined hand center posenet estimation')  # initial hand com in IMG
     # ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     ax.legend()
 
