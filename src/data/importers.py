@@ -735,7 +735,9 @@ class iPhoneImporter(DepthImporter):
                     continue
 
                 try: #here we initialize the com with ground truth mcp middle finger of msra15 dataset [z in mm, (x,y) in pxls]
-                    dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom) #dpt resolution changes to 128by128
+                    # dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom) #dpt resolution changes to 128by128
+                    dpt, M, com = hd.cropArea3D(com=None, size=config['cube'], docom=docom) #dpt resolution changes to 128by128
+
                 except UserWarning:
                     print("Skipping image {}, no hand detected".format(dptFileName))
                     continue
@@ -1139,7 +1141,8 @@ class MSRA15Importer(DepthImporter):
                     continue
 
                 try: #here we initialize the com with ground truth mcp middle finger of msra15 dataset [z in mm, (x,y) in pxls]
-                    dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom)
+                    # dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom)
+                    dpt, M, com = hd.cropArea3D(com=None, size=config['cube'], docom=docom)
                 except UserWarning:
                     print("Skipping image {}, no hand detected".format(dptFileName))
                     continue
