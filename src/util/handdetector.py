@@ -58,7 +58,7 @@ class HandDetector(object):
         self.minDepth = max(10, dpt.min())
         # set values out of range to 0
         self.dpt[self.dpt > self.maxDepth] = 0.
-        # self.dpt[self.dpt < self.minDepth] = 0.
+        self.dpt[self.dpt < self.minDepth] = 0.
 
         # camera settings
         self.fx = fx

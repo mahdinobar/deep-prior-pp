@@ -260,29 +260,34 @@ if __name__ == '__main__':
     w = 128.
     iw = 3088.0
     ih = 2316.0
-    yscale = h / ih
-    xscale = w / iw
+    xscale = h / ih
+    yscale = w / iw
     _fx = 2880.0796 * xscale
     _fy = 2880.0796 * yscale
     _ux = 1153.2035 * xscale
-    _uy = 1153.2035 * yscale
+    _uy = 1546.5824 * yscale
 
     icom = np.empty((2, 1))
-    icom[0] = Seq_0.data[0].gtorig[5][0] * xscale
-    icom[1] = Seq_0.data[0].gtorig[5][1] * yscale
-    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=30, label='initial center: MSRA mcp middle finger joint')  # initial hand com in IMG
+    # icom[0] = (Seq_0.data[0].gtorig[5][0] * (128./320.)).astype(np.float32)
+    # icom[1] = (Seq_0.data[0].gtorig[5][1] * (128./240.)).astype(np.float32)
+    icom[0] = Seq_0.data[0].gtcrop[5][0]
+    icom[1] = Seq_0.data[0].gtcrop[5][1]
+    # icom3D = Seq_0.data[0].gt3Dorig
+    # icom[0] = icom3D[5][0] / icom3D[5][2] * _fx + _uy
+    # icom[1] = icom3D[5][1] / icom3D[5][2] * _fy + _ux
+    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: MSRA mcp middle finger joint')  # initial hand com in IMG
 
     gt_com = np.empty((2, 1))
     gt_com3D = Seq_0.data[0].com
     gt_com[0] = gt_com3D[0] / gt_com3D[2] * _fx + _ux
     gt_com[1] = gt_com3D[1] / gt_com3D[2] * _fy + _uy
-    ax.scatter(gt_com[0], gt_com[1], marker='+', c='blue', s=30, label='ground truth refined hand center')  # initial hand com in IMG
+    ax.scatter(gt_com[0], gt_com[1], marker='+', c='blue', s=100, label='ground truth refined hand center')  # initial hand com in IMG
 
     refined_com = np.empty((2, 1))
     refined_com3D = joints[0][0]
     refined_com[0] = refined_com3D[0] / refined_com3D[2] * _fx + _ux
     refined_com[1] = refined_com3D[1] / refined_com3D[2] * _fy + _uy
-    ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=30, label='refined hand center posenet estimation')  # initial hand com in IMG
+    ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=100, label='refined hand center posenet estimation')  # initial hand com in IMG
     # ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     ax.legend()
 

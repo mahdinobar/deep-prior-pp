@@ -540,8 +540,8 @@ class iPhoneImporter(DepthImporter):
         :return:
         """
         # iPhone calibration
-        _h = 240
-        _w = 320
+        _h = 240.
+        _w = 320.
         iw = 3088.0
         ih = 2316.0
         xscale = _h / ih
@@ -702,12 +702,22 @@ class iPhoneImporter(DepthImporter):
 
                 # invert axis
                 # gt3Dorig[:, 0] *= (-1.)
-                # gt3Dorig[:, 1] *= (-1.)
+                gt3Dorig[:, 1] *= (-1.)
                 gt3Dorig[:, 2] *= (-1.)
 
-                # normalized joints in 3D coordinates
-                gtorig = self.joints3DToImg(gt3Dorig)
-
+                # joints in image coordinates (x,y) in pxls and z in mm with resolution 320by240
+                gtorig = self.joints3DToImg_iPhone(gt3Dorig)
+                # gtorig = o3d_gtorig[:, [0, 1, 2]]
+                # gtorig[:,[0]] = 320-gtorig[:,[0]]
+########################################################################################################################
+                import matplotlib.pyplot as plt
+                import matplotlib
+                fig, ax = plt.subplots()
+                ax.imshow(dpt, cmap=matplotlib.cm.jet)
+                ax.plot(gtorig[:, 0], gtorig[:,1], marker='+', markersize=30)
+                plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+                plt.close()
+########################################################################################################################
                 if self.hand is not None:
                     if self.hand != self.sides[seqName]:
                         gtorig[:, 0] -= dpt.shape[1] / 2.
@@ -725,14 +735,15 @@ class iPhoneImporter(DepthImporter):
                     continue
 
                 try: #here we initialize the com with ground truth mcp middle finger of msra15 dataset [z in mm, (x,y) in pxls]
-                    dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom)
+                    dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom) #dpt resolution changes to 128by128
                 except UserWarning:
                     print("Skipping image {}, no hand detected".format(dptFileName))
                     continue
 
-                com3D = self.jointImgTo3D(com)
+                com3D = self.jointImgTo3D_iPhone(com)
                 gt3Dcrop = gt3Dorig - com3D  # normalize to com
 
+                # gtcrop=ground truth joints.txt in CROPPED image coordinate(pxl, pxl, mm)
                 gtcrop = transformPoints2D(gtorig, M)
 
                 # print("{}".format(gt3Dorig))
@@ -760,6 +771,7 @@ class iPhoneImporter(DepthImporter):
             rng.shuffle(data)
         return NamedImgSequence(seqName, data, config)
 
+
     def jointsImgTo3D(self, sample):
         """
         Normalize sample to metric 3D
@@ -780,6 +792,57 @@ class iPhoneImporter(DepthImporter):
         ret = np.zeros((3,), np.float32)
         ret[0] = (sample[0] - self.ux) * sample[2] / self.fx
         ret[1] = (self.uy - sample[1]) * sample[2] / self.fy
+        ret[2] = sample[2]
+        return ret
+
+
+    def jointsImgTo3D_iPhone(self, sample):
+        """
+        Normalize sample to metric 3D
+        :param sample: joints in (x,y,z) with x,y in image coordinates and z in mm
+        :return: normalized joints in mm
+        """
+        ret = np.zeros((sample.shape[0], 3), np.float32)
+        for i in xrange(sample.shape[0]):
+            ret[i] = self.jointImgTo3D(sample[i])
+        return ret
+
+    def jointImgTo3D_iPhone(self, sample):
+        """
+        Normalize sample to metric 3D
+        :param sample: joints in (x,y,z) with x,y in image coordinates and z in mm
+        :return: normalized joints in mm
+        """
+        ret = np.zeros((3,), np.float32)
+        ret[0] = (sample[0] - self.ux) * sample[2] / self.fx
+        ret[1] = (sample[1] - self.uy) * sample[2] / self.fy
+        ret[2] = sample[2]
+        return ret
+
+    def joints3DToImg_iPhone(self, sample):
+        """
+        Denormalize sample from metric 3D to image coordinates
+        :param sample: joints in (x,y,z) with x,y and z in mm
+        :return: joints in (x,y,z) with x,y in image coordinates and z in mm
+        """
+        ret = np.zeros((sample.shape[0], 3), np.float32)
+        for i in xrange(sample.shape[0]):
+            ret[i] = self.joint3DToImg_iPhone(sample[i])
+        return ret
+
+    def joint3DToImg_iPhone(self, sample):
+        """
+        Denormalize sample from metric 3D to image coordinates
+        :param sample: joints in (x,y,z) with x,y and z in mm
+        :return: joints in (x,y,z) with x,y in image coordinates and z in mm
+        """
+        ret = np.zeros((3, ), np.float32)
+        if sample[2] == 0.:
+            ret[0] = self.ux
+            ret[1] = self.uy
+            return ret
+        ret[0] = sample[0]/sample[2]*self.fx+self.uy
+        ret[1] = sample[1]/sample[2]*self.fy + self.ux
         ret[2] = sample[2]
         return ret
 
