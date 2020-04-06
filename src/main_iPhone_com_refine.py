@@ -268,14 +268,9 @@ if __name__ == '__main__':
     _uy = 1546.5824 * yscale
 
     icom = np.empty((2, 1))
-    # icom[0] = (Seq_0.data[0].gtorig[5][0] * (128./320.)).astype(np.float32)
-    # icom[1] = (Seq_0.data[0].gtorig[5][1] * (128./240.)).astype(np.float32)
     icom[0] = Seq_0.data[0].gtcrop[5][0]
     icom[1] = Seq_0.data[0].gtcrop[5][1]
-    # icom3D = Seq_0.data[0].gt3Dorig
-    # icom[0] = icom3D[5][0] / icom3D[5][2] * _fx + _uy
-    # icom[1] = icom3D[5][1] / icom3D[5][2] * _fy + _ux
-    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: MSRA mcp middle finger joint')  # initial hand com in IMG
+    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: Center of Mass')  # initial hand com in IMG
 
     gt_com = np.empty((2, 1))
     gt_com3D = Seq_0.data[0].com
@@ -293,6 +288,9 @@ if __name__ == '__main__':
 
 
     plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/iPhone_30hand50wall.png')
+
+    joints[0][:,[2]] = joints[0][:, [2]]
+    np.savetxt('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/{}_3Drefinedcom.txt'.format('iPhone_30hand50wall'), joints[0][0], fmt='%4.12f', newline=' ')
 
 ########################################################################################################################
 
