@@ -266,9 +266,13 @@ if __name__ == '__main__':
     _ux = 160 * xscale
     _uy = 120 * yscale
 
+    # icom = np.empty((2, 1))
+    # icom[0] = Seq_0.data[0].gtorig[5][0] * xscale
+    # icom[1] = Seq_0.data[0].gtorig[5][1] * yscale
     icom = np.empty((2, 1))
-    icom[0] = Seq_0.data[0].gtorig[5][0] * xscale
-    icom[1] = Seq_0.data[0].gtorig[5][1] * yscale
+    icom[0] = Seq_0.data[0].gtcrop[5][0]
+    icom[1] = Seq_0.data[0].gtcrop[5][1]
+    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: MSRA mcp middle finger joint')  # initial hand com in IMG
     ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=30, label='initial center: MSRA mcp middle finger joint')  # initial hand com in IMG
 
     gt_com = np.empty((2, 1))
@@ -286,7 +290,7 @@ if __name__ == '__main__':
     ax.legend()
 
 
-    plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+    plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/msra_G5_P0_000000.png')
 
 ########################################################################################################################
 

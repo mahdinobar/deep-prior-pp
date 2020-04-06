@@ -1111,6 +1111,16 @@ class MSRA15Importer(DepthImporter):
 
                 # normalized joints in 3D coordinates
                 gtorig = self.joints3DToImg(gt3Dorig)
+                ########################################################################################################################
+                import matplotlib.pyplot as plt
+                import matplotlib
+                fig, ax = plt.subplots()
+                ax.imshow(dpt, cmap=matplotlib.cm.jet)
+                ax.plot(gtorig[:, 0], gtorig[:, 1], marker='+', markersize=30)
+                plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+                plt.close()
+                ########################################################################################################################
+
 
                 if self.hand is not None:
                     if self.hand != self.sides[seqName]:
