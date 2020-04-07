@@ -271,6 +271,7 @@ if __name__ == '__main__':
     icom = np.empty((2, 1))
     icom[0] = Seq_0.data[0].gtcrop[5][0]
     icom[1] = Seq_0.data[0].gtcrop[5][1]
+
     ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: Center of Mass')  # initial hand com in IMG
 
     gt_com = np.empty((2, 1))
@@ -336,85 +337,6 @@ if __name__ == '__main__':
 # end save 3D joint data for 320*240 frame #############################################################################
 
     np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T.npy', Seq_0.data[0].T)
-
-
-# ########################################################################################################################
-#
-#     # plot 2
-#     import matplotlib.pyplot as plt
-#     import matplotlib
-#     import numpy as np
-#     import open3d as o3d
-#     from PIL import Image
-#
-#     fig, ax = plt.subplots()
-#     # temporary: must be changed ###########################################################################################
-#     color_raw = o3d.io.read_image('/home/mahdi/HVR/hvr/hand_pcl_iPhone/Tom_set_2/iPhone/hand30wall50_color.png')
-#     depth_raw = o3d.io.read_image('/home/mahdi/HVR/git_repos/deep-prior-pp/data/iPhone/P0/5/hand30wall50_depth.png')
-#     color_raw = o3d.geometry.Image(np.asarray(color_raw))
-#     rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
-#         color_raw, depth_raw, depth_scale=0.529, depth_trunc=30.0, convert_rgb_to_intensity=False)
-#     # iPhone calibration
-#     h = np.asarray(color_raw).shape[0]  # 480
-#     w = np.asarray(color_raw).shape[1]  # 640
-#     iw = 3088.0
-#     ih = 2316.0
-#     xscale = h / ih
-#     yscale = w / iw
-#     _fx = 2880.0796 * xscale
-#     _fy = 2880.0796 * yscale
-#     # _cx = 1546.5824 * xscale
-#     # _cy = 1153.2035 * yscale
-#     _cx = 1153.2035 * xscale
-#     _cy = 1546.5824 * yscale
-#     setIntrinsic = o3d.camera.PinholeCameraIntrinsic()
-#     setIntrinsic.set_intrinsics(width=w, height=h, fx=_fx, fy=_fy, cx=_cx, cy=_cy)
-#     pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
-#         rgbd_image,
-#         setIntrinsic)
-#     # Flip it, otherwise the pointcloud will be upside down
-#     pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-#     z_values = (-np.asarray(pcd.points)[:, 2] * 1000)  # in mm
-#     depth_map = np.reshape(z_values, (480, 640))
-#     depth_map = np.asarray(Image.fromarray(depth_map).resize((320, 240)))
-#     # temporary: must be changed ###########################################################################################
-#     ax.imshow(depth_map, cmap=matplotlib.cm.jet)
-#
-#
-#     # iPhone calibration
-#     h = 240.
-#     w = 320.
-#     iw = 3088.0
-#     ih = 2316.0
-#     xscale = h / ih
-#     yscale = w / iw
-#     _fx = 2880.0796 * xscale
-#     _fy = 2880.0796 * yscale
-#     _ux = 1153.2035 * xscale
-#     _uy = 1546.5824 * yscale
-#
-#     gt_com = np.empty((2, 1))
-#     gt_com3D = Seq_0.data[0].com
-#     gt_com[0] = gt_com3D[0] / gt_com3D[2] * _fx + _ux
-#     gt_com[1] = gt_com3D[1] / gt_com3D[2] * _fy + _uy
-#     ax.scatter(gt_com[0], gt_com[1], marker='+', c='w', s=200,
-#                label='ground truth refined hand center')  # initial hand com in IMG
-#
-#     refined_com = np.empty((2, 1))
-#     refined_com3D = joints[0][0]
-#     refined_com[0] = refined_com3D[0] / refined_com3D[2] * _fx + _ux
-#     refined_com[1] = refined_com3D[1] / refined_com3D[2] * _fy + _uy
-#     ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=100,
-#                label='refined hand center posenet estimation')  # initial hand com in IMG
-#     # ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-#
-#     ax.scatter(x, y, marker='*', c='k', s=300,
-#                label='refined com after resize-crop transformation')
-#     ax.legend()
-#
-#     plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/iPhone_30hand50wall_2.png')
-#
-# ########################################################################################################################
 
 
     # hpe = MSRAHandposeEvaluation(gt3D, joints)
