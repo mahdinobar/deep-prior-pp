@@ -290,6 +290,7 @@ if __name__ == '__main__':
 
 
     plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/msra_G5_P0_000000.png')
+    np.savetxt('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/{}_3Drefinedcom.txt'.format('000000msraP0G5'), joints[0][0], fmt='%4.12f', newline=' ')
 
 ########################################################################################################################
 
