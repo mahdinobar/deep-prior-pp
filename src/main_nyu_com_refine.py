@@ -189,26 +189,30 @@ if __name__ == '__main__':
                                    'train_gt3D': train_gt3D})
     poseNetTrainer.compileFunctions()
 
-    ###################################################################
-    # TRAIN
-    train_res = poseNetTrainer.train(n_epochs=100)
-    train_costs = train_res[0]
-    val_errs = train_res[2]
+    # ###################################################################
+    # # TRAIN
+    # train_res = poseNetTrainer.train(n_epochs=100)
+    # train_costs = train_res[0]
+    # val_errs = train_res[2]
+    #
+    # # plot cost
+    # fig = plt.figure()
+    # plt.semilogy(train_costs)
+    # plt.show(block=False)
+    # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_cost.png')
+    #
+    # fig = plt.figure()
+    # plt.semilogy(val_errs)
+    # plt.show(block=False)
+    # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_errs.png')
+    #
+    # # save results
+    # poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
 
-    # plot cost
-    fig = plt.figure()
-    plt.semilogy(train_costs)
-    plt.show(block=False)
-    fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_cost.png')
 
-    fig = plt.figure()
-    plt.semilogy(val_errs)
-    plt.show(block=False)
-    fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_errs.png')
-
-    # save results
-    poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
-    # poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix,eval_prefix))
+    #####################################################################
+    # use pre-trained model
+    poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix,eval_prefix))
 
     ####################################################
     # TEST
