@@ -21,7 +21,9 @@ along with DeepPrior.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
-os.environ["THEANO_FLAGS"] = "device=gpu,floatX=float32"
+# os.environ["THEANO_FLAGS"] = "device=gpu,floatX=float32"
+os.environ["THEANO_FLAGS"] = "device=cuda,floatX=float32"
+
 
 import numpy
 from data.dataset import NYUDataset, ICVLDataset
@@ -30,7 +32,8 @@ from net.resnet import ResNetParams, ResNet
 from net.scalenet import ScaleNetParams, ScaleNet
 from util.realtimehandposepipeline import RealtimeHandposePipeline
 from data.importers import ICVLImporter, NYUImporter, MSRA15Importer
-from util.cameradevice import CreativeCameraDevice, FileDevice
+# from util.cameradevice import CreativeCameraDevice
+from util.cameradevice import FileDevice
 
 
 __author__ = "Markus Oberweger <oberweger@icg.tugraz.at>"
@@ -53,15 +56,15 @@ if __name__ == '__main__':
     # Seq2 = di.loadSequence('test_seq_1')
     # testSeqs = [Seq2]
 
-    di = NYUImporter('../data/NYU/')
+    di = NYUImporter('../data/NYU_fake/')
     Seq2 = di.loadSequence('test_1')
     testSeqs = [Seq2]
 
     # load trained network
-    poseNetParams = ResNetParams(type=1, nChan=1, wIn=128, hIn=128, batchSize=1, numJoints=14, nDims=3)
-    poseNetParams.loadFile = "./eval/NYU_network_prior.pkl"
-    comrefNetParams = ScaleNetParams(type=1, nChan=1, wIn=128, hIn=128, batchSize=1, resizeFactor=2, numJoints=1, nDims=3)
-    comrefNetParams.loadFile = "./eval/net_NYU_COM_AUGMENT.pkl"
+    poseNetParams = ResNetParams(type=1, nChan=1, wIn=128, hIn=128, batchSize=64, numJoints=14, nDims=3)
+    poseNetParams.loadFile = "./eval/NYU_COM_AUGMENT/NYU_network_prior.pkl"
+    comrefNetParams = ScaleNetParams(type=1, nChan=1, wIn=128, hIn=128, batchSize=64, resizeFactor=2, numJoints=1, nDims=3)
+    comrefNetParams.loadFile = "./eval/NYU_COM_AUGMENT/net_NYU.pkl"
     config = {'fx': 588., 'fy': 587., 'cube': (300, 300, 300)}
     # config = {'fx': 241.42, 'fy': 241.42, 'cube': (250, 250, 250)}
     # config = {'fx': 224.5, 'fy': 230.5, 'cube': (300, 300, 300)}  # Creative Gesture Camera
@@ -75,4 +78,5 @@ if __name__ == '__main__':
 
     # use depth camera
     # dev = CreativeCameraDevice(mirror=True)
-    rtp.processVideoThreaded(dev)
+    # rtp.processVideoThreaded(dev)
+    rtp.processVideo(dev)

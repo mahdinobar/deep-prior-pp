@@ -254,7 +254,7 @@ class RealtimeHandposePipeline(object):
                 break
             # Capture frame-by-frame
             start = time.time()
-            ret, frame = device.getDepth()
+            ret, frame = device.getDepth() #frame: raw loaded IMG depth map(480,640)
             if ret is False:
                 print "Error while reading frame."
                 time.sleep(0.1)
@@ -263,22 +263,23 @@ class RealtimeHandposePipeline(object):
                 print("{}ms capturing".format((time.time() - start)*1000.))
 
             startd = time.time()
-            crop, M, com3D = self.detect(frame.copy())
+            crop, M, com3D = self.detect(frame.copy()) #many operations are done for cropped frame so crop is not just a crop
             if self.verbose is True:
                 print("{}ms detection".format((time.time() - startd)*1000.))
 
             startp = time.time()
-            pose = self.estimatePose(crop, com3D)
+            pose = self.estimatePose(crop, com3D) #pose shape (14,3); com3D not used; only crop used here
             pose = pose*self.sync['config']['cube'][2]/2. + com3D
             if self.verbose is True:
                 print("{}ms pose".format((time.time() - startp)*1000.))
 
             # Display the resulting frame
             starts = time.time()
-            img, poseimg = self.show(frame, pose, com3D)
+            img, poseimg = self.show(frame, pose, com3D) #frame(480,640); pose(14,3); com3D(1,3); img here is still (480,640) grayscale not depth map
 
-            img = self.addStatusBar(img)
+            img = self.addStatusBar(img) #adds extra info on img (not relevant)
             cv2.imshow('frame', img)
+            cv2.waitKey(0)
             self.lastshow = time.time()
             if self.show_pose:
                 cv2.imshow('pose', poseimg)
@@ -296,7 +297,7 @@ class RealtimeHandposePipeline(object):
     def detect(self, frame):
         """
         Detect the hand
-        :param frame: image frame
+        :param frame: image frame = input depth map
         :return: cropped image, transformation, center
         """
 
@@ -331,7 +332,7 @@ class RealtimeHandposePipeline(object):
             com3D = self.importer.jointImgTo3D(com)
             sc = (self.sync['config']['cube'][2] / 2.)
             crop[crop == 0] = com3D[2] + sc
-            crop.clip(com3D[2] - sc, com3D[2] + sc)
+            crop.clip(com3D[2] - sc, com3D[2] + sc)  #Return an array whose values are limited to [min, max]. One of max or min must be given.
             crop -= com3D[2]
             crop /= sc
             return crop, M, com3D
@@ -404,7 +405,7 @@ class RealtimeHandposePipeline(object):
         else:
             raise ValueError("Invalid number of joints {}".format(handpose.shape[0]))
 
-        jtI = self.importer.joints3DToImg(handpose)
+        jtI = self.importer.joints3DToImg(handpose) #estimated joints in IMG (480,640) system
         jtI[:, 0:2] -= numpy.asarray([frame.shape[0]//2, frame.shape[1]//2])
         jtI[:, 0:2] *= upsample
         jtI[:, 0:2] += numpy.asarray([imgcopy.shape[0]//2, imgcopy.shape[1]//2])

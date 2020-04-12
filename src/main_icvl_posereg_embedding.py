@@ -34,6 +34,7 @@ from util.handdetector import HandDetector
 from util.handpose_evaluation import ICVLHandposeEvaluation
 from data.transformations import transformPoints2D
 from net.hiddenlayer import HiddenLayer, HiddenLayerParams
+from net.resnet import ResNet, ResNetParams
 
 if __name__ == '__main__':
 
@@ -90,9 +91,9 @@ if __name__ == '__main__':
 
     ############################################################################
     print("create network")
-    batchSize = 128
+    batchSize = 64
     poseNetParams = PoseRegNetParams(type=0, nChan=nChannels, wIn=imgSizeW, hIn=imgSizeH, batchSize=batchSize,
-                                     numJoints=1, nDims=train_gt3D_embed.shape[1])
+                                     numJoints=16, nDims=train_gt3D_embed.shape[1])
     poseNet = PoseRegNet(rng, cfgParams=poseNetParams)
 
     poseNetTrainerParams = PoseRegNetTrainerParams()
@@ -118,42 +119,42 @@ if __name__ == '__main__':
                                    'train_gt3Dcrop': train_gt3Dcrop})
     poseNetTrainer.compileFunctions(compileDebugFcts=False)
 
-    ###################################################################
-    # TRAIN
-    train_res = poseNetTrainer.train(n_epochs=100)
-    train_costs = train_res[0]
-    val_errs = train_res[2]
+    # ###################################################################
+    # # TRAIN
+    # train_res = poseNetTrainer.train(n_epochs=100)
+    # train_costs = train_res[0]
+    # val_errs = train_res[2]
+    #
+    # ###################################################################
+    # # TEST
+    # # plot cost
+    # fig = plt.figure()
+    # plt.semilogy(train_costs)
+    # plt.show(block=False)
+    # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_cost.png')
+    #
+    # fig = plt.figure()
+    # plt.plot(numpy.asarray(val_errs).T)
+    # plt.show(block=False)
+    # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_errs.png')
 
-    ###################################################################
-    # TEST
-    # plot cost
-    fig = plt.figure()
-    plt.semilogy(train_costs)
-    plt.show(block=False)
-    fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_cost.png')
-
-    fig = plt.figure()
-    plt.plot(numpy.asarray(val_errs).T)
-    plt.show(block=False)
-    fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_errs.png')
-
-    # save results
-    poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
-    # poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
-
-    # add prior to network
-    cfg = HiddenLayerParams(inputDim=(batchSize, train_gt3D_embed.shape[1]),
-                            outputDim=(batchSize, numpy.prod(train_gt3D.shape[1:])), activation=None)
-    pcalayer = HiddenLayer(rng, poseNet.layers[-1].output, cfg, layerNum=len(poseNet.layers))
-    pcalayer.W.set_value(pca.components_)
-    pcalayer.b.set_value(pca.mean_)
-    poseNet.layers.append(pcalayer)
-    poseNet.output = pcalayer.output
-    poseNet.cfgParams.numJoints = train_gt3D.shape[1]
-    poseNet.cfgParams.nDims = train_gt3D.shape[2]
-    poseNet.cfgParams.outputDim = pcalayer.cfgParams.outputDim
-    poseNet.save("./eval/{}/network_prior.pkl".format(eval_prefix))
-
+    # # save results
+    # poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
+    poseNet.load("./eval/{}/net_ICVL.pkl".format(eval_prefix))
+    #
+    # # add prior to network
+    # cfg = HiddenLayerParams(inputDim=(batchSize, train_gt3D_embed.shape[1]),
+    #                         outputDim=(batchSize, numpy.prod(train_gt3D.shape[1:])), activation=None)
+    # pcalayer = HiddenLayer(rng, poseNet.layers[-1].output, cfg, layerNum=len(poseNet.layers))
+    # pcalayer.W.set_value(pca.components_)
+    # pcalayer.b.set_value(pca.mean_)
+    # poseNet.layers.append(pcalayer)
+    # poseNet.output = pcalayer.output
+    # poseNet.cfgParams.numJoints = train_gt3D.shape[1]
+    # poseNet.cfgParams.nDims = train_gt3D.shape[2]
+    # poseNet.cfgParams.outputDim = pcalayer.cfgParams.outputDim
+    # poseNet.save("./eval/{}/network_prior.pkl".format(eval_prefix))
+    poseNet.load("./eval/{}/ICVL_network_prior.pkl".format(eval_prefix))
     ###################################################################
     #  test
     print("Testing ...")

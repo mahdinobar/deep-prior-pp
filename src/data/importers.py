@@ -189,7 +189,7 @@ class ICVLImporter(DepthImporter):
     provide functionality to load data from the ICVL dataset
     """
 
-    def __init__(self, basepath, useCache=True, cacheDir='/media/mahdi/276bbbd7-a9de-4030-857d-34c615ff4e0a/mahdi_hdd/DPpp_data/', refineNet=None, hand=None):
+    def __init__(self, basepath, useCache=True, cacheDir='/media/mahdi/276bbbd7-a9de-4030-857d-34c615ff4e0a/mahdi_hdd/DPpp_data/cache', refineNet=None, hand=None):
         """
         Constructor
         :param basepath: base path of the ICVL dataset
