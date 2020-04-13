@@ -74,9 +74,9 @@ def plot_nyu():
     from mpl_toolkits.mplot3d import Axes3D
     import numpy as np
     from PIL import Image
-    # fig = plt.figure(figsize=(12, 12))
-    # ax = fig.gca(projection='3d')
-    fig, ax = plt.subplots(figsize=(12, 12))
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.gca(projection='3d')
+    fig2, ax2 = plt.subplots(figsize=(12, 12))
 
 
     filename = '/home/mahdi/HVR/git_repos/deep-prior-pp/data/NYU_fake/test_1/depth_1_0000001.png'  # open image
@@ -86,7 +86,6 @@ def plot_nyu():
         :param filename: file name to load
         :return: image data of depth image
         """
-
         img = Image.open(filename)
         # top 8 bits of depth are packed into green channel and lower 8 bits into blue
         assert len(img.getbands()) == 3
@@ -103,7 +102,7 @@ def plot_nyu():
 
     def pixel2world(x, y, z, fx, fy, ux, uy):
         w_x = (x - ux) * z / fx
-        w_y = (y - uy) * z / fy
+        w_y = (-y + uy) * z / fy
         w_z = z
         return w_x, w_y, w_z
     def depthmap2points(image, fx, fy, ux, uy):
@@ -115,70 +114,52 @@ def plot_nyu():
 
     iD_xyz = depthmap2points(iD, fx=588.03, fy=587.07, ux=320., uy=240.)
     _input_points_xyz = iD_xyz.reshape(iD_xyz.shape[0]*iD_xyz.shape[1],3)
-    input_points_xyz = _input_points_xyz[np.logical_and(_input_points_xyz[:, 2] < 2100, 210 < _input_points_xyz[:, 2]), :]
-    # ax.scatter(input_points_xyz[:, 0], input_points_xyz[:, 1], input_points_xyz[:, 2], marker="o", s=.01,
-    #            label='depth map')
-    ax.scatter(input_points_xyz[:, 0], input_points_xyz[:, 1], marker="o", s=.01,
+    input_points_xyz = _input_points_xyz[np.logical_and(_input_points_xyz[:, 2] < 850, 700 < _input_points_xyz[:, 2]), :]
+    ax.scatter(input_points_xyz[:, 0], input_points_xyz[:, 1], input_points_xyz[:, 2], marker="o", s=.05,
+               label='depth map')
+    ax2.scatter(input_points_xyz[:, 0], input_points_xyz[:, 1], marker="o", s=.05,
                label='depth map')
 
 
 
     test_id = 0
-    joints3Dc = np.load('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/joint_{}.npy'.format(test_id))
-    def world2pixel(x, y, z, fx, fy, ux, uy):
-        p_x = x * fx / z + ux
-        p_y = y * fy / z + uy
-        return p_x, p_y
-    def transform_resize_crop(M, xc, yc):
-        '''
-        transform from cropped-resized frame to the original 320by240 frame
-        '''
-        v = np.array([xc, yc, 1])
-        invM = np.linalg.inv(M)
-        cdd = np.inner(invM[2, :], v)
-        x = np.inner(invM[0, :], v) * cdd
-        y = np.inner(invM[1, :], v) * cdd
-        return x, y
-    T = np.load('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T_{}.npy'.format(test_id))
-
-    jointsIMGc = np.empty(joints3Dc.shape)
-    yscale = 128/480
-    xscale = 128/640
-    jointsIMGc[test_id, :, 0], jointsIMGc[test_id, :, 1] = world2pixel(joints3Dc[test_id, :, 0], joints3Dc[test_id, :, 1], joints3Dc[test_id, :, 2], fx=588.03*xscale, fy=587.07*yscale, ux=64., uy=64.)
-    jointsIMGc[test_id, :, 2] = joints3Dc[test_id, :, 2]
-
-    jointsIMG2 = np.empty(jointsIMGc.shape)
-    for j in range(0, 14):
-        jointsIMG2[test_id, j, 0], jointsIMG2[test_id, j, 1] = transform_resize_crop(M=T, xc=jointsIMGc[test_id, j, 0], yc=jointsIMGc[test_id, j, 1])
-    jointsIMG2[test_id, :, 2] = joints3Dc[test_id, :, 2]
-
-    jointsIMG = np.empty(jointsIMGc.shape)
-    jointsIMG[test_id, :, 0], jointsIMG[test_id, :, 1] = transform_resize_crop(M=T, xc=jointsIMGc[test_id, :, 0], yc=jointsIMGc[test_id, :, 1])
-    jointsIMG[test_id, :, 2] = joints3Dc[test_id, :, 2]
-
-
-    joints3D = np.empty(joints3Dc.shape)
-    joints3D[test_id, :, 0], joints3D[test_id, :, 1], joints3D[test_id, :, 2] = pixel2world(jointsIMG[test_id, :, 0], jointsIMG[test_id, :, 1], joints3Dc[test_id, :, 2], fx=588.03, fy=587.07, ux=320., uy=240.)
-    # joints3D[test_id, :, 2] = joints3Dc[test_id, :, 2]
+    joints3D = np.load('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/joint_{}.npy'.format(test_id))
+    # def world2pixel(x, y, z, fx, fy, ux, uy):
+    #     p_x = x * fx / z + ux
+    #     p_y = y * fy / z + uy
+    #     return p_x, p_y
+    # def transform_resize_crop(M, xc, yc):
+    #     '''
+    #     transform from cropped-resized frame to the original 320by240 frame
+    #     '''
+    #     v = np.array([xc, yc, 1])
+    #     invM = np.linalg.inv(M)
+    #     cdd = np.inner(invM[2, :], v)
+    #     x = np.inner(invM[0, :], v) * cdd
+    #     y = np.inner(invM[1, :], v) * cdd
+    #     return x, y
+    # T = np.load('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T_{}.npy'.format(test_id))
 
 
     keypoints_test = joints3D
-    # ax.scatter(keypoints_test[test_id, :, 0], keypoints_test[test_id, :, 1], keypoints_test[test_id, :, 2], marker="x",
-    #            c='red', s=10, label='estimated hand joints')
-    ax.scatter(keypoints_test[test_id, :, 0], keypoints_test[test_id, :, 1], marker="x",
-               c='red', s=10, label='estimated hand joints')
-
+    ax.scatter(keypoints_test[test_id, :, 0], keypoints_test[test_id, :, 1], keypoints_test[test_id, :, 2], marker="o",
+               c='red', s=50, label='estimated hand joints')
+    ax2.scatter(keypoints_test[test_id, :, 0], keypoints_test[test_id, :, 1], marker="o",
+               c='red', s=50, label='estimated hand joints')
 
 
     # ax.scatter(input_center[0], input_center[1], input_center[2], marker="X", c='black', s=10, label='refined hand center')
     # ax.view_init(elev=-90, azim=0)
     ax.set_title('DP++ hand joint estimator: NYU')
-    # ax.set_xlabel('X')
-    # ax.set_ylabel('Y')
-    # ax.set_zlabel('Z')
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
     ax.legend()
+
+    ax2.set_title('DP++ hand joint estimator: NYU')
+    ax2.set_xlabel('X')
+    ax2.set_ylabel('Y')
+    ax2.legend()
     # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/NYU_3Djoints_{}'.format(test_id))
     plt.show()
     plt.close()
