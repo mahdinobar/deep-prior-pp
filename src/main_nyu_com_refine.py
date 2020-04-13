@@ -211,7 +211,7 @@ if __name__ == '__main__':
 
 
     #####################################################################
-    # use pre-trained model
+    # use pre-trained model for refined com
     poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix,eval_prefix))
 
     ####################################################

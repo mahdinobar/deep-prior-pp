@@ -268,7 +268,7 @@ class RealtimeHandposePipeline(object):
                 print("{}ms detection".format((time.time() - startd)*1000.))
 
             startp = time.time()
-            pose = self.estimatePose(crop, com3D) #pose shape (14,3); com3D not used; only crop used here
+            pose = self.estimatePose(crop, com3D) #pose shape (14,3); com3D not used; only crop used here; crop shape (128, 128)float32
             pose = pose*self.sync['config']['cube'][2]/2. + com3D
             if self.verbose is True:
                 print("{}ms pose".format((time.time() - startp)*1000.))
@@ -332,7 +332,7 @@ class RealtimeHandposePipeline(object):
             com3D = self.importer.jointImgTo3D(com)
             sc = (self.sync['config']['cube'][2] / 2.)
             crop[crop == 0] = com3D[2] + sc
-            crop.clip(com3D[2] - sc, com3D[2] + sc)  #Return an array whose values are limited to [min, max]. One of max or min must be given.
+            crop.clip(com3D[2] - sc, com3D[2] + sc)  #Return an array whose values are limited to [min, max]. One of max or min must be given. This is missing at L99 of '/home/mahdi/HVR/git_repos/deep-prior-pp/src/data/dataset.py' for test_data, _ = testDataSet.imgStackDepthOnly
             crop -= com3D[2]
             crop /= sc
             return crop, M, com3D

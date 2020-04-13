@@ -38,8 +38,10 @@ from net.resnet import ResNetParams, ResNet
 from net.scalenet import ScaleNetParams
 import numpy as np
 
-if __name__ == '__main__':
-
+def main():
+    '''
+    load pretrained NYU model and get joint 3D estimation and save them.
+    '''
     eval_prefix = 'NYU_posereg'
     if not os.path.exists('./eval/'+eval_prefix+'/'):
         os.makedirs('./eval/'+eval_prefix+'/')
@@ -51,7 +53,8 @@ if __name__ == '__main__':
 
     comref = None  # "./eval/NYU_COM_AUGMENT/net_NYU_COM_AUGMENT.pkl"
     docom = False
-    di = NYUImporter('../data/NYU_fake/', refineNet=comref)
+    # di = NYUImporter('../data/NYU_fake/', refineNet=comref)
+    di = NYUImporter('../data/NYU_fake/', refineNet=comref, cacheDir='/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache')
     # Seq1 = di.loadSequence('train', shuffle=True, rng=rng, docom=docom)
     # trainSeqs = [Seq1]
 
@@ -182,7 +185,7 @@ if __name__ == '__main__':
 
     joints = numpy.array(joints)
     test_id = 0 # id of test frame to save
-    np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T_{}.npy'.format(test_id), np.asarray(Seq2_1.data[0].T))
+    # np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T_{}.npy'.format(test_id), np.asarray(Seq2_1.data[0].T))
     np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/joint_{}.npy'.format(test_id), joints)
 
     # hpe = NYUHandposeEvaluation(gt3D, joints)
@@ -215,3 +218,8 @@ if __name__ == '__main__':
     #     jtI = transformPoints2D(di.joints3DToImg(joints[ind]), i.T)
     #     hpe.plotResult(i.dpt, i.gtcrop, jtI, "{}_{}".format(eval_prefix, ind))
     #     ind += 1
+
+
+
+if __name__ == '__main__':
+    main()

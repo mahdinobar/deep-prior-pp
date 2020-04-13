@@ -399,7 +399,7 @@ class HandDetector(object):
             raise ValueError("Size must be 3D and dsize 2D bounding box")
 
         if com is None:
-            com = self.calculateCoM(self.dpt)
+            com = self.calculateCoM(self.dpt) #binarize the depth map to select points between minDepth and maxDepth and measure binary com there
 
         # calculate boundaries
         xstart, xend, ystart, yend, zstart, zend = self.comToBounds(com, size)

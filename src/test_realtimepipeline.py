@@ -56,8 +56,8 @@ if __name__ == '__main__':
     # Seq2 = di.loadSequence('test_seq_1')
     # testSeqs = [Seq2]
 
-    di = NYUImporter('../data/NYU_fake/')
-    Seq2 = di.loadSequence('test_1')
+    di = NYUImporter('../data/NYU_fake/', cacheDir='/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache')
+    Seq2 = di.loadSequence('test_1', )
     testSeqs = [Seq2]
 
     # load trained network
