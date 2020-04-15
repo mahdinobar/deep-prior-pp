@@ -107,6 +107,13 @@ def plot_nyu():
     # plot
     eval_prefix = 'NYU_posereg'
 
+    import matplotlib.pyplot as plt
+    # import matplotlib
+    # matplotlib.use('Agg')  # plot to file
+    from mpl_toolkits.mplot3d import Axes3D
+    import numpy as np
+    from PIL import Image
+
     fig = plt.figure(figsize=(12, 12))
     ax = fig.gca(projection='3d')
     fig2, ax2 = plt.subplots(figsize=(12, 12))
@@ -157,6 +164,7 @@ def plot_nyu():
 
     test_id = 0
     joints3D = np.load('/home/mahdi/HVR/git_repos/deep-prior-pp/src/eval/{}/joint_{}_{}.npy'.format(eval_prefix, test_id, eval_prefix))
+
     # def world2pixel(x, y, z, fx, fy, ux, uy):
     #     p_x = x * fx / z + ux
     #     p_y = y * fy / z + uy

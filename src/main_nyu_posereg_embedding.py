@@ -1,3 +1,4 @@
+
 """This is the main file for training hand joint classifier on NYU dataset
 
 Copyright 2015 Markus Oberweger, ICG,
