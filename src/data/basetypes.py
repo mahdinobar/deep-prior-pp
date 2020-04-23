@@ -35,3 +35,7 @@ DepthFrame = namedtuple('DepthFrame',
                         ['dpt', 'gtorig', 'gtcrop', 'T', 'gt3Dorig', 'gt3Dcrop', 'com', 'fileName', 'subSeqName',
                          'side', 'extraData'])
 NamedImgSequence = namedtuple('NamedImgSequence', ['name', 'data', 'config'])
+
+DepthFrame_iPad = namedtuple('DepthFrame_iPad',
+                        ['dpt', 'T', 'com'])
+NamedImgSequence_iPad = namedtuple('NamedImgSequence_iPad', ['data', 'config'])
