@@ -23,8 +23,12 @@ import numpy
 import gc
 import matplotlib
 
-matplotlib.use('Agg')  # plot to file
-import matplotlib.pyplot as plt
+
+import os
+os.environ["THEANO_FLAGS"] = "device=cuda,floatX=float32"
+
+# matplotlib.use('Agg')  # plot to file
+# import matplotlib.pyplot as plt
 from net.scalenet import ScaleNetParams, ScaleNet
 from trainer.scalenettrainer import ScaleNetTrainerParams, ScaleNetTrainer
 from util.handdetector import HandDetector
@@ -34,6 +38,9 @@ from data.importers import iPhoneImporter
 from data.dataset import iPhoneDataset
 from util.handpose_evaluation import MSRAHandposeEvaluation
 from util.helpers import shuffle_many_inplace
+from PIL import Image
+import open3d as o3d
+
 
 if __name__ == '__main__':
 
@@ -88,7 +95,7 @@ if __name__ == '__main__':
     #              Seq8_1, Seq8_2]
 
     # trainSeqs = [Seq0_1]
-    Seq_0 = di.loadSequence('P0', docom=True)
+    Seq_0 = di.loadSequence('P0', docom=True, cube=(200,200,200)) # we crop data centered in center of mass of data between maxdepth and mindepth and cube size cube in mm^3 and use it to get the resultant in UVD (do resize and ...) and feed it into the either train or test COM augmented refine net
     testSeqs = [Seq_0]
 
     # # create training data
@@ -233,7 +240,9 @@ if __name__ == '__main__':
 
     # # save results
     # poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
-    poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix,eval_prefix))
+    # poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix,eval_prefix))
+    # poseNet.load("./eval/{}/net_ICVL_COM_AUGMENT.pkl".format(eval_prefix))
+    poseNet.load("./eval/{}/net_MSRA15_COM_AUGMENT.pkl".format(eval_prefix))
 
     ####################################################
     # TEST
@@ -254,11 +263,20 @@ if __name__ == '__main__':
     import numpy as np
 
     fig, ax = plt.subplots()
-    ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+    # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+    ax.imshow(test_data.squeeze(), cmap=matplotlib.cm.jet)
 
+    icom = np.empty((2, 1))
+    icom[0] = Seq_0.data[0].gtcrop[5][0]
+    icom[1] = Seq_0.data[0].gtcrop[5][1]
+
+    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: Center of Mass to train refine net')  # initial hand com in UVD
+    plt.show()
+    ax.legend()
+########################################################################################################################
     # iPhone calibration
-    h = 128.
-    w = 128.
+    h = 240.
+    w = 320.
     iw = 3088.0
     ih = 2316.0
     xscale = h / ih
@@ -268,27 +286,74 @@ if __name__ == '__main__':
     _ux = 1153.2035 * xscale
     _uy = 1546.5824 * yscale
 
-    icom = np.empty((2, 1))
-    icom[0] = Seq_0.data[0].gtcrop[5][0]
-    icom[1] = Seq_0.data[0].gtcrop[5][1]
-
-    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: Center of Mass')  # initial hand com in IMG
-
-    gt_com = np.empty((2, 1))
+    # temporary: must be changed ###########################################################################################
+    color_raw = o3d.io.read_image('/home/mahdi/HVR/hvr/hand_pcl_iPhone/Tom_set_2/iPhone/hand30wall50_color.png')
+    depth_raw = o3d.io.read_image('/home/mahdi/HVR/git_repos/deep-prior-pp/data/iPhone/P0/5/hand30wall50_depth.png')
+    color_raw = o3d.geometry.Image(np.asarray(color_raw))
+    rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+        color_raw, depth_raw, depth_scale=0.529, depth_trunc=30.0, convert_rgb_to_intensity=False)
+    # iPhone calibration
+    h = np.asarray(color_raw).shape[0]  # 480
+    w = np.asarray(color_raw).shape[1]  # 640
+    iw = 3088.0
+    ih = 2316.0
+    xscale = h / ih
+    yscale = w / iw
+    __fx = 2880.0796 * xscale
+    __fy = 2880.0796 * yscale
+    # _cx = 1546.5824 * xscale
+    # _cy = 1153.2035 * yscale
+    __cx = 1153.2035 * xscale
+    __cy = 1546.5824 * yscale
+    setIntrinsic = o3d.camera.PinholeCameraIntrinsic()
+    setIntrinsic.set_intrinsics(width=w, height=h, fx=__fx, fy=__fy, cx=__cx, cy=__cy)
+    pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+        rgbd_image,
+        setIntrinsic)
+    # Flip it, otherwise the pointcloud will be upside down
+    pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
+    z_values = (-np.asarray(pcd.points)[:, 2] * 1000)  # in mm
+    depth_map = np.reshape(z_values, (480, 640))
+    imgdata = np.asarray(Image.fromarray(depth_map).resize((320, 240)))
+# temporary: must be changed ###########################################################################################
+    fig = plt.figure(figsize=(12, 12))
+    from mpl_toolkits.mplot3d import Axes3D
+    ax = fig.gca(projection='3d')
+    def pixel2world(x, y, z, fx, fy, ux, uy):
+        w_x = (x - ux) * z / fx
+        w_y = -(-y + uy) * z / fy
+        w_z = z
+        return w_x, w_y, w_z
+    def depthmap2points(image, fx, fy, ux, uy):
+        h, w = image.shape
+        x, y = np.meshgrid(np.arange(w) + 1, np.arange(h) + 1)
+        points = np.zeros((h, w, 3), dtype=np.float32)
+        points[:, :, 0], points[:, :, 1], points[:, :, 2] = pixel2world(x, y, image, fx, fy, ux, uy)
+        return points
+    iD_xyz = depthmap2points(imgdata, fx=_fx, fy=_fy, ux=_ux, uy=_uy)
+    _input_points_xyz = iD_xyz.reshape(iD_xyz.shape[0]*iD_xyz.shape[1],3)
+    input_points_xyz = _input_points_xyz[np.logical_and(_input_points_xyz[:, 2] < 340, -np.inf < _input_points_xyz[:, 2]), :]
+    ax.scatter(input_points_xyz[:, 0], input_points_xyz[:, 1], input_points_xyz[:, 2], marker="o", s=.05,
+               label='depth map')
+    # Seq_0.data[0].com in 3D is calculated hand center of mass to get cropped cube to feed into the refinenet to let it predict in UVD of 320by240 pixels
+    # gt_com = np.empty((2, 1))
     gt_com3D = Seq_0.data[0].com
-    gt_com[0] = gt_com3D[0] / gt_com3D[2] * _fx + _ux
-    gt_com[1] = gt_com3D[1] / gt_com3D[2] * _fy + _uy
-    ax.scatter(gt_com[0], gt_com[1], marker='+', c='blue', s=100, label='ground truth refined hand center')  # initial hand com in IMG
+    # gt_com[0] = gt_com3D[0] / gt_com3D[2] * _fx + _ux
+    # gt_com[1] = gt_com3D[1] / gt_com3D[2] * _fy + _uy
+    # # transformPoints2D(gt_com, M=Seq_0.data[0].T)
+    ax.scatter(gt_com3D[0], gt_com3D[1], gt_com3D[2], marker='x', c='m', s=150, label='calculated hand center of mass')  # 'calculated hand center of mass to get cropped cube to >feed into the refinenet to let it predict' ; initial hand com in IMG
 
-    refined_com = np.empty((2, 1))
-    refined_com3D = joints[0][0] # joints in 3D for cropped(200 by 200) then resized (128by128) frame of DPpp
-    refined_com[0] = refined_com3D[0] / refined_com3D[2] * _fx + _ux
-    refined_com[1] = refined_com3D[1] / refined_com3D[2] * _fy + _uy
-    ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=100, label='refined hand center posenet estimation')  # initial hand com in IMG
+    # refined_com = np.empty((2, 1))
+    refined_com3D = joints[0][0] # estimated joints in 3D
+    # refined_com[0] = refined_com3D[0] / refined_com3D[2] * _fx + _ux
+    # refined_com[1] = refined_com3D[1] / refined_com3D[2] * _fy + _uy
+    ax.scatter(refined_com3D[0], refined_com3D[1], refined_com3D[2], marker='*', c='lime', s=150, label='refined hand center refinenet estimation')  # initial hand com in IMG
     # ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
-    ax.legend()
 
-    plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/iPhone_30hand50wall.png')
+    # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/iPhone_30hand50wall.png')
+    ax.legend()
+    plt.show()
+    plt.close()
 
 # start save 3D joint data for 320*240 frame ###########################################################################
     # iPhone calibration

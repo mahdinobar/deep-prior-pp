@@ -54,7 +54,7 @@ class HandDetector(object):
         :param fy: camera focal lenght
         """
         self.dpt = dpt
-        self.maxDepth = min(400, dpt.max())
+        self.maxDepth = min(350, dpt.max())
         self.minDepth = max(10, dpt.min())
         # set values out of range to 0
         self.dpt[self.dpt > self.maxDepth] = 0.
@@ -399,19 +399,20 @@ class HandDetector(object):
             raise ValueError("Size must be 3D and dsize 2D bounding box")
 
         if com is None:
-            com = self.calculateCoM(self.dpt)
+            com = self.calculateCoM(self.dpt) #calculate center of mass of binarized point cloud inside minDepth and maxDepth
 
         # calculate boundaries
         xstart, xend, ystart, yend, zstart, zend = self.comToBounds(com, size)
 
         # crop patch from source
         cropped = self.getCrop(self.dpt, xstart, xend, ystart, yend, zstart, zend)
-        ax.plot(com[0],com[1],marker='+', markersize=30)
+        # ax.imshow(cropped, cmap=matplotlib.cm.jet)
+        ax.plot(com[0],com[1],marker='+', markersize=30, label='center of mass inside minDepth and maxDepth')
 
         #############
         # for simulating COM within cube
         if docom is True:
-            com = self.calculateCoM(cropped) # calculate com of cropped image
+            com = self.calculateCoM(cropped) # comUVD calculate com of cropped image (cropped wrt cube e.g 200 by 200 by (minDepth - maxDepth)
             if numpy.allclose(com, 0.):
                 com[2] = cropped[cropped.shape[0]//2, cropped.shape[1]//2]
                 if numpy.isclose(com[2], 0):
@@ -439,9 +440,18 @@ class HandDetector(object):
 
             # crop patch from source
             cropped = self.getCrop(self.dpt, xstart, xend, ystart, yend, zstart, zend)
-
+        # #########################################################################################
+        # # plot
+        # import matplotlib.pyplot as plt
+        # import matplotlib
+        # fig, ax2 = plt.subplots()
+        # # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+        # ax2.imshow(cropped, cmap=matplotlib.cm.jet)
+        # plt.show()
+        # ########################################################################################################################
         ax.plot(com[0],com[1],marker='o', c='r', markersize=10)
-        plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/com.png')
+        # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/com.png')
+        plt.show()
         plt.close()
         #############
         wb = (xend - xstart)

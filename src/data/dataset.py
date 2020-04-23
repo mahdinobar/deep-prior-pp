@@ -82,6 +82,17 @@ class Dataset(object):
             # compute the stack from the sequence
             numImgs = len(imgSeq.data)
             data0 = numpy.asarray(imgSeq.data[0].dpt, 'float32')
+# ########################################################################################################################
+#             # plot
+#             import matplotlib.pyplot as plt
+#             import matplotlib
+#             import numpy as np
+#             fig, ax = plt.subplots()
+#             # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+#             ax.imshow(data0, cmap=matplotlib.cm.jet)
+#             plt.show()
+#             plt.close()
+# ########################################################################################################################
             label0 = numpy.asarray(imgSeq.data[0].gtorig, 'float32')
             h, w = data0.shape
             j, d = label0.shape

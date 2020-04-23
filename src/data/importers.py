@@ -552,7 +552,7 @@ class iPhoneImporter(DepthImporter):
         # _cy = 1153.2035 * yscale
         _cx = 1153.2035 * xscale
         _cy = 1546.5824 * yscale
-        super(iPhoneImporter, self).__init__(_fx, _fy, _cy, _cx, hand)  # see Sun et.al.
+        super(iPhoneImporter, self).__init__(_fx, _fy, _cx, _cy, hand)  # see Sun et.al.
 
         self.depth_map_size = (320, 240)
         self.basepath = basepath
@@ -563,7 +563,7 @@ class iPhoneImporter(DepthImporter):
         self.detectorNet = detectorNet
         self.numJoints = 21
         self.crop_joint_idx = 5
-        self.default_cubes = {'P0': (200, 200, 200)}
+        self.default_cubes = {'P0': (200, 200, 200)} # cube all in mm
         self.sides = {'P0': 'right'}
 
     def loadDepthMap(self, filename):
@@ -710,12 +710,14 @@ class iPhoneImporter(DepthImporter):
                 # gtorig = o3d_gtorig[:, [0, 1, 2]]
                 # gtorig[:,[0]] = 320-gtorig[:,[0]]
 ########################################################################################################################
+                # plot hand and gt joints
                 import matplotlib.pyplot as plt
                 import matplotlib
                 fig, ax = plt.subplots()
                 ax.imshow(dpt, cmap=matplotlib.cm.jet)
                 ax.plot(gtorig[:, 0], gtorig[:,1], marker='o', c='k', markersize=15)
-                plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+                # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+                plt.show()
                 plt.close()
 ########################################################################################################################
                 if self.hand is not None:
@@ -737,7 +739,7 @@ class iPhoneImporter(DepthImporter):
                 try: #here we initialize the com with ground truth mcp middle finger of msra15 dataset [z in mm, (x,y) in pxls]
                     # dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom) #dpt resolution changes to 128by128
                     dpt, M, com = hd.cropArea3D(com=None, size=config['cube'], docom=docom) #dpt resolution changes to 128by128
-
+                #      com in UVD of 320by240
                 except UserWarning:
                     print("Skipping image {}, no hand detected".format(dptFileName))
                     continue
@@ -750,7 +752,7 @@ class iPhoneImporter(DepthImporter):
 
                 # print("{}".format(gt3Dorig))
                 # self.showAnnotatedDepth(DepthFrame(dpt,gtorig,gtcrop,M,gt3Dorig,gt3Dcrop,com3D,dptFileName,'','',{}))
-
+                # Seq_0.data[0].com is com3D here in fact which is the com in 3D converted from com in UVD of 320 by 240!
                 data.append(DepthFrame(dpt.astype(np.float32), gtorig, gtcrop, M, gt3Dorig, gt3Dcrop, com3D,
                                        dptFileName, subSeqName, self.sides[seqName], {}))
                 pbar.update(pi)
@@ -843,8 +845,8 @@ class iPhoneImporter(DepthImporter):
             ret[0] = self.ux
             ret[1] = self.uy
             return ret
-        ret[0] = sample[0]/sample[2]*self.fx+self.uy
-        ret[1] = sample[1]/sample[2]*self.fy + self.ux
+        ret[0] = sample[0]/sample[2]*self.fx+self.ux
+        ret[1] = sample[1]/sample[2]*self.fy + self.uy
         ret[2] = sample[2]
         return ret
 
@@ -1113,15 +1115,15 @@ class MSRA15Importer(DepthImporter):
 
                 # normalized joints in 3D coordinates
                 gtorig = self.joints3DToImg(gt3Dorig)
-                ########################################################################################################################
-                import matplotlib.pyplot as plt
-                import matplotlib
-                fig, ax = plt.subplots()
-                ax.imshow(dpt, cmap=matplotlib.cm.jet)
-                ax.plot(gtorig[:, 0], gtorig[:, 1], marker='o', c='k', markersize=15)
-                plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
-                plt.close()
-                ########################################################################################################################
+                # ########################################################################################################################
+                # import matplotlib.pyplot as plt
+                # import matplotlib
+                # fig, ax = plt.subplots()
+                # ax.imshow(dpt, cmap=matplotlib.cm.jet)
+                # ax.plot(gtorig[:, 0], gtorig[:, 1], marker='o', c='k', markersize=15)
+                # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+                # plt.close()
+                # ########################################################################################################################
 
 
                 if self.hand is not None:

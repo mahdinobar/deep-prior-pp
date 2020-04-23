@@ -22,8 +22,9 @@ along with DeepPrior.  If not, see <http://www.gnu.org/licenses/>.
 import numpy
 import gc
 import matplotlib
-
-matplotlib.use('Agg')  # plot to file
+import os
+os.environ["THEANO_FLAGS"] = "device=cuda,floatX=float32"
+# matplotlib.use('Agg')  # plot to file
 import matplotlib.pyplot as plt
 from net.scalenet import ScaleNetParams, ScaleNet
 from trainer.scalenettrainer import ScaleNetTrainerParams, ScaleNetTrainer
@@ -247,13 +248,87 @@ if __name__ == '__main__':
     print "jts = {}".format(jts)
     # 3D coordinates of the refined center = joints
     print "joints = {}".format(joints)
+
+    ########################################################################################################################
+
+    # temporary: must be changed ###########################################################################################
+    import struct
+    import numpy as np
+    filename='/home/mahdi/HVR/git_repos/deep-prior-pp/data/MSRA15/P0/5/000000_depth.bin'
+    # first 6 uint define the full image
+    with open(filename, 'rb') as f:
+        width = struct.unpack('i', f.read(4))[0]
+        height = struct.unpack('i', f.read(4))[0]
+        left = struct.unpack('i', f.read(4))[0]
+        top = struct.unpack('i', f.read(4))[0]
+        right = struct.unpack('i', f.read(4))[0]
+        bottom = struct.unpack('i', f.read(4))[0]
+        patch = np.fromfile(f, dtype='float32', sep="")
+        imgdata = np.zeros((height, width), dtype='float32')
+        imgdata[top:bottom, left:right] = patch.reshape([bottom - top, right - left])
+
+    # temporary: must be changed ###########################################################################################
+    fig = plt.figure(figsize=(12, 12))
+    from mpl_toolkits.mplot3d import Axes3D
+
+    ax = fig.gca(projection='3d')
+
+
+    def pixel2world(x, y, z, fx, fy, ux, uy):
+        w_x = (x - ux) * z / fx
+        w_y = -(-y + uy) * z / fy
+        w_z = z
+        return w_x, w_y, w_z
+
+
+    def depthmap2points(image, fx, fy, ux, uy):
+        h, w = image.shape
+        x, y = np.meshgrid(np.arange(w) + 1, np.arange(h) + 1)
+        points = np.zeros((h, w, 3), dtype=np.float32)
+        points[:, :, 0], points[:, :, 1], points[:, :, 2] = pixel2world(x, y, image, fx, fy, ux, uy)
+        return points
+
+
+    _fx=241.42
+    _fy=241.42
+    _ux=160.
+    _uy=120.
+    iD_xyz = depthmap2points(imgdata, fx=_fx, fy=_fy, ux=_ux, uy=_uy)
+    _input_points_xyz = iD_xyz.reshape(iD_xyz.shape[0] * iD_xyz.shape[1], 3)
+    input_points_xyz = _input_points_xyz[
+                       np.logical_and(_input_points_xyz[:, 2] < 340, -np.inf < _input_points_xyz[:, 2]), :]
+    ax.scatter(input_points_xyz[:, 0], input_points_xyz[:, 1], input_points_xyz[:, 2], marker="o", s=.05,
+               label='depth map')
+    # Seq_0.data[0].com in 3D is calculated hand center of mass to get cropped cube to feed into the refinenet to let it predict in UVD of 320by240 pixels
+    # gt_com = np.empty((2, 1))
+    gt_com3D = Seq_0.data[0].com
+    # gt_com[0] = gt_com3D[0] / gt_com3D[2] * _fx + _ux
+    # gt_com[1] = gt_com3D[1] / gt_com3D[2] * _fy + _uy
+    # # transformPoints2D(gt_com, M=Seq_0.data[0].T)
+    ax.scatter(gt_com3D[0], gt_com3D[1], gt_com3D[2], marker='x', c='m', s=100,
+               label='calculated hand center of mass')  # 'calculated hand center of mass to get cropped cube to >feed into the refinenet to let it predict' ; initial hand com in IMG
+
+    # refined_com = np.empty((2, 1))
+    refined_com3D = joints[0][0]  # estimated joints in 3D
+    # refined_com[0] = refined_com3D[0] / refined_com3D[2] * _fx + _ux
+    # refined_com[1] = refined_com3D[1] / refined_com3D[2] * _fy + _uy
+    ax.scatter(refined_com3D[0], refined_com3D[1], refined_com3D[2], marker='*', c='lime', s=100,
+               label='refined hand center refinenet estimation')  # initial hand com in IMG
+    # ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+
+    # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/iPhone_30hand50wall.png')
+    plt.show()
+    plt.close()
+
+
 ########################################################################################################################
     # plot
     import matplotlib.pyplot as plt
     import matplotlib
     import numpy as np
     fig, ax = plt.subplots()
-    ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+    # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+    ax.imshow(test_data.squeeze(), cmap=matplotlib.cm.jet)
     # [158.13968  104.160515 304.667]
     h = 128.
     w = 128.
@@ -272,23 +347,23 @@ if __name__ == '__main__':
     icom = np.empty((2, 1))
     icom[0] = Seq_0.data[0].gtcrop[5][0]
     icom[1] = Seq_0.data[0].gtcrop[5][1]
-    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: Center of Mass')  # initial hand com in IMG
+    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: Center of Mass to train refine net')  # initial hand com in UVD
 
     gt_com = np.empty((2, 1))
     gt_com3D = Seq_0.data[0].com
     gt_com[0] = gt_com3D[0] / gt_com3D[2] * _fx + _ux
     gt_com[1] = gt_com3D[1] / gt_com3D[2] * _fy + _uy
-    ax.scatter(gt_com[0], gt_com[1], marker='+', c='blue', s=100, label='ground truth refined hand center')  # initial hand com in IMG
+    ax.scatter(gt_com[0], gt_com[1], marker='x', c='m', s=100, label='calculated hand center of mass to get cropped cube to feed into the refinenet to let it predict')  # initial hand com in IMG
 
     refined_com = np.empty((2, 1))
     refined_com3D = joints[0][0]
     refined_com[0] = refined_com3D[0] / refined_com3D[2] * _fx + _ux
     refined_com[1] = refined_com3D[1] / refined_com3D[2] * _fy + _uy
-    ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=100, label='refined hand center posenet estimation')  # initial hand com in IMG
+    ax.scatter(refined_com[0], refined_com[1], marker='*', c='lime', s=100, label='refined hand center refinenet estimation')  # initial hand com in IMG
     # ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
     ax.legend()
 
-
+    plt.show()
     plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/msra_G5_P0_000000.png')
     np.savetxt('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/{}_3Drefinedcom.txt'.format('000000msraP0G5'), joints[0][0], fmt='%4.12f', newline=' ')
 
