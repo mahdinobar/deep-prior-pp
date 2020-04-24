@@ -1903,12 +1903,19 @@ class iPadImporter(DepthImporter):
         import matplotlib.pyplot as plt
         import matplotlib
         fig, ax = plt.subplots()
+<<<<<<< HEAD
         dm = ax.imshow(dpt, cmap=matplotlib.cm.jet, label='input depth map resized 240by320')
         fig.colorbar(dm, ax=ax)
         # ax.plot(gtorig[:, 0], gtorig[:,1], marker='o', c='k', markersize=15)
         # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
         ax.legend()
         plt.title('input depth map resized 240by320')
+=======
+        ax.imshow(dpt, cmap=matplotlib.cm.jet, label='input depth map resized 240by320')
+        # ax.plot(gtorig[:, 0], gtorig[:,1], marker='o', c='k', markersize=15)
+        # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+        ax.legend()
+>>>>>>> fcf1b2f80c82016e1538c79113a0ed8612df38d5
         plt.show()
 ########################################################################################################################
         # if self.hand is not None:
@@ -1932,12 +1939,19 @@ class iPadImporter(DepthImporter):
         import matplotlib.pyplot as plt
         import matplotlib
         fig, ax = plt.subplots()
+<<<<<<< HEAD
         dm = ax.imshow(dpt, cmap=matplotlib.cm.jet, label='depth map thresholded')
         fig.colorbar(dm, ax=ax)
         # ax.plot(gtorig[:, 0], gtorig[:,1], marker='o', c='k', markersize=15)
         # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
         ax.legend()
         plt.title('depth map thresholded')
+=======
+        ax.imshow(dpt, cmap=matplotlib.cm.jet, label='depth map thresholded')
+        # ax.plot(gtorig[:, 0], gtorig[:,1], marker='o', c='k', markersize=15)
+        # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+        ax.legend()
+>>>>>>> fcf1b2f80c82016e1538c79113a0ed8612df38d5
         plt.show()
         ########################################################################################################################
         # try: #here we initialize the com with ground truth mcp middle finger of msra15 dataset [z in mm, (x,y) in pxls]

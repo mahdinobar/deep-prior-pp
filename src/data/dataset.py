@@ -130,8 +130,12 @@ class Dataset(object):
                 import numpy as np
                 fig, ax = plt.subplots()
                 # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+<<<<<<< HEAD
                 dm0 = ax.imshow(data0, cmap=matplotlib.cm.jet, label='data0')
                 fig.colorbar(dm0, ax=ax)
+=======
+                ax.imshow(data0, cmap=matplotlib.cm.jet, label='data0')
+>>>>>>> fcf1b2f80c82016e1538c79113a0ed8612df38d5
                 plt.title('data0')
                 plt.show()
                 ########################################################################################################################
@@ -148,8 +152,12 @@ class Dataset(object):
                 import numpy as np
                 fig, ax = plt.subplots()
                 # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+<<<<<<< HEAD
                 dm1 = ax.imshow(imgD, cmap=matplotlib.cm.jet, label='imgD: test_data')
                 fig.colorbar(dm1, ax=ax)
+=======
+                ax.imshow(imgD, cmap=matplotlib.cm.jet, label='imgD: test_data')
+>>>>>>> fcf1b2f80c82016e1538c79113a0ed8612df38d5
                 plt.title('imgD: test_data')
                 plt.show()
                 ########################################################################################################################
