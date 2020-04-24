@@ -1,41 +1,23 @@
-"""This is the main file for training hand joint classifier on MSRA dataset
-
-Copyright 2015 Markus Oberweger, ICG,
-Graz University of Technology <oberweger@icg.tugraz.at>
-
-This file is part of DeepPrior.
-
-DeepPrior is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-DeepPrior is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with DeepPrior.  If not, see <http://www.gnu.org/licenses/>.
+"""
 """
 
 import numpy
 import gc
 import matplotlib
-
+import numpy as np
 
 import os
 os.environ["THEANO_FLAGS"] = "device=cuda,floatX=float32"
 
 # matplotlib.use('Agg')  # plot to file
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from net.scalenet import ScaleNetParams, ScaleNet
 from trainer.scalenettrainer import ScaleNetTrainerParams, ScaleNetTrainer
 from util.handdetector import HandDetector
 import os
 import cPickle
-from data.importers import iPhoneImporter
-from data.dataset import iPhoneDataset
+from data.importers import iPadImporter
+from data.dataset import iPhoneDataset, iPadDataset
 from util.handpose_evaluation import MSRAHandposeEvaluation
 from util.helpers import shuffle_many_inplace
 from PIL import Image
@@ -44,7 +26,7 @@ import open3d as o3d
 
 if __name__ == '__main__':
 
-    eval_prefix = 'iPhone_COM_AUGMENT'
+    eval_prefix = 'iPad_COM_AUGMENT'
     if not os.path.exists('./eval/'+eval_prefix+'/'):
         os.makedirs('./eval/'+eval_prefix+'/')
 
@@ -53,7 +35,7 @@ if __name__ == '__main__':
     print("create data")
     aug_modes = ['com', 'rot', 'none']  # 'sc',
 
-    di = iPhoneImporter('../data/iPhone/')
+    di = iPadImporter('/home/mahdi/HVR/hvr/data/iPad/set_1/iPad_1_Depth_1.txt')
     # Seq0_1 = di.loadSequence('P0', shuffle=True, rng=rng, docom=False)
     # Seq0_1 = Seq0_1._replace(name='P0_gt')
     # Seq0_2 = di.loadSequence('P0', shuffle=True, rng=rng, docom=True)
@@ -95,7 +77,7 @@ if __name__ == '__main__':
     #              Seq8_1, Seq8_2]
 
     # trainSeqs = [Seq0_1]
-    Seq_0 = di.loadSequence('P0', docom=True, cube=(200,200,200)) # we crop data centered in center of mass of data between maxdepth and mindepth and cube size cube in mm^3 and use it to get the resultant in UVD (do resize and ...) and feed it into the either train or test COM augmented refine net
+    Seq_0 = di.loadSequence(docom=True, cube=(200,200,200)) # we crop data centered in center of mass of data between maxdepth and mindepth and cube size cube in mm^3 and use it to get the resultant in UVD (do resize and ...) and feed it into the either train or test COM augmented refine net
     testSeqs = [Seq_0]
 
     # # create training data
@@ -129,11 +111,11 @@ if __name__ == '__main__':
     # mb = (train_data.nbytes) / (1024 * 1024)
     # print("data size: {}Mb".format(mb))
 
-    testDataSet = iPhoneDataset(testSeqs)
-    test_data, test_gt3D = testDataSet.imgStackDepthOnly(testSeqs[0].name, mode='iPad')
+    testDataSet = iPadDataset(testSeqs)
+    test_data = testDataSet.imgStackDepthOnly(seqName=testSeqs, mode='iPad')
 
     val_data = test_data
-    val_gt3D = test_gt3D
+    # val_gt3D = test_gt3D
 
     ####################################
     # # resize data
@@ -242,12 +224,12 @@ if __name__ == '__main__':
     # poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
     # poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix,eval_prefix))
     # poseNet.load("./eval/{}/net_ICVL_COM_AUGMENT.pkl".format(eval_prefix))
-    poseNet.load("./eval/{}/net_MSRA15_COM_AUGMENT.pkl".format(eval_prefix))
+    poseNet.load("./eval/{}/net_ICVL_COM_AUGMENT.pkl".format(eval_prefix))
 
     ####################################################
     # TEST
     print("Testing ...")
-    gt3D = [j.gt3Dorig[di.crop_joint_idx].reshape(1, 3) for j in testSeqs[0].data]
+    # gt3D = [j.gt3Dorig[di.crop_joint_idx].reshape(1, 3) for j in testSeqs[0].data]
     # jts = poseNet.computeOutput([test_data, test_data2, test_data4])
     jts = poseNet.computeOutput([test_data, test_data[:, :, 32:96, 32:96], test_data[:, :, 48:80, 48:80]])
     joints = []
@@ -256,65 +238,24 @@ if __name__ == '__main__':
     print "jts = {}".format(jts)
     # 3D coordinates of the refined center = joints
     print "joints = {}".format(joints)
-########################################################################################################################
-    # plot
-    import matplotlib.pyplot as plt
-    import matplotlib
-    import numpy as np
 
-    fig, ax = plt.subplots()
-    # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
-    ax.imshow(test_data.squeeze(), cmap=matplotlib.cm.jet)
-
-    icom = np.empty((2, 1))
-    icom[0] = Seq_0.data[0].gtcrop[5][0]
-    icom[1] = Seq_0.data[0].gtcrop[5][1]
-
-    ax.scatter(icom[0], icom[1], marker='+', c='yellow', s=100, label='initial center: Center of Mass to train refine net')  # initial hand com in UVD
-    plt.show()
-    ax.legend()
-########################################################################################################################
-    # iPhone calibration
-    h = 240.
-    w = 320.
+    # iPad calibration
+    _h = 240.
+    _w = 320.
     iw = 3088.0
     ih = 2316.0
-    xscale = h / ih
-    yscale = w / iw
-    _fx = 2880.0796 * xscale
-    _fy = 2880.0796 * yscale
-    _ux = 1153.2035 * xscale
-    _uy = 1546.5824 * yscale
-
-    # temporary: must be changed ###########################################################################################
-    color_raw = o3d.io.read_image('/home/mahdi/HVR/hvr/hand_pcl_iPhone/Tom_set_2/iPhone/hand30wall50_color.png')
-    depth_raw = o3d.io.read_image('/home/mahdi/HVR/git_repos/deep-prior-pp/data/iPhone/P0/5/hand30wall50_depth.png')
-    color_raw = o3d.geometry.Image(np.asarray(color_raw))
-    rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
-        color_raw, depth_raw, depth_scale=0.529, depth_trunc=30.0, convert_rgb_to_intensity=False)
-    # iPhone calibration
-    h = np.asarray(color_raw).shape[0]  # 480
-    w = np.asarray(color_raw).shape[1]  # 640
-    iw = 3088.0
-    ih = 2316.0
-    xscale = h / ih
-    yscale = w / iw
-    __fx = 2880.0796 * xscale
-    __fy = 2880.0796 * yscale
+    xscale = _h / ih
+    yscale = _w / iw
+    _fx = 2883.24 * xscale
+    _fy = 2883.24 * yscale
     # _cx = 1546.5824 * xscale
     # _cy = 1153.2035 * yscale
-    __cx = 1153.2035 * xscale
-    __cy = 1546.5824 * yscale
-    setIntrinsic = o3d.camera.PinholeCameraIntrinsic()
-    setIntrinsic.set_intrinsics(width=w, height=h, fx=__fx, fy=__fy, cx=__cx, cy=__cy)
-    pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
-        rgbd_image,
-        setIntrinsic)
-    # Flip it, otherwise the pointcloud will be upside down
-    pcd.transform([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
-    z_values = (-np.asarray(pcd.points)[:, 2] * 1000)  # in mm
-    depth_map = np.reshape(z_values, (480, 640))
-    imgdata = np.asarray(Image.fromarray(depth_map).resize((320, 240)))
+    _ux = 1154.66 * xscale
+    _uy = 1536.17 * yscale
+
+# temporary: must be changed ##########################################################################################
+    iDepth = np.loadtxt('/home/mahdi/HVR/hvr/data/iPad/set_1/iPad_1_Depth_1.txt', dtype=np.float32) * 1000  # mm
+    iDepth = np.asarray(Image.fromarray(iDepth).resize((320, 240)))
 # temporary: must be changed ###########################################################################################
     fig = plt.figure(figsize=(12, 12))
     from mpl_toolkits.mplot3d import Axes3D
@@ -330,10 +271,10 @@ if __name__ == '__main__':
         points = np.zeros((h, w, 3), dtype=np.float32)
         points[:, :, 0], points[:, :, 1], points[:, :, 2] = pixel2world(x, y, image, fx, fy, ux, uy)
         return points
-    iD_xyz = depthmap2points(imgdata, fx=_fx, fy=_fy, ux=_ux, uy=_uy)
+    iD_xyz = depthmap2points(iDepth, fx=_fx, fy=_fy, ux=_ux, uy=_uy)
     _input_points_xyz = iD_xyz.reshape(iD_xyz.shape[0]*iD_xyz.shape[1],3)
-    input_points_xyz = _input_points_xyz[np.logical_and(_input_points_xyz[:, 2] < 340, -np.inf < _input_points_xyz[:, 2]), :]
-    ax.scatter(input_points_xyz[:, 0], input_points_xyz[:, 1], input_points_xyz[:, 2], marker="o", s=.05,
+    input_points_xyz = _input_points_xyz[np.logical_and(_input_points_xyz[:, 2] < 1000, -np.inf < _input_points_xyz[:, 2]), :]
+    ax.scatter(input_points_xyz[:, 0], input_points_xyz[:, 1], input_points_xyz[:, 2], marker="o", s=.3,
                label='depth map')
     # Seq_0.data[0].com in 3D is calculated hand center of mass to get cropped cube to feed into the refinenet to let it predict in UVD of 320by240 pixels
     # gt_com = np.empty((2, 1))
@@ -353,72 +294,71 @@ if __name__ == '__main__':
     # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/iPhone_30hand50wall.png')
     ax.legend()
     plt.show()
-    plt.close()
-
-# start save 3D joint data for 320*240 frame ###########################################################################
-    # iPhone calibration
-    _h = 128.
-    _w = 128.
-    _iw = 3088.0
-    _ih = 2316.0
-    xscale = _h / _ih
-    yscale = _w / _iw
-    _fx = 2880.0796 * xscale
-    _fy = 2880.0796 * yscale
-    _ux = 1153.2035 * xscale
-    _uy = 1546.5824 * yscale
-    _refined_com = np.empty((2, 1))
-    _refined_com3D = joints[0][0] # joints in 3D for cropped(200 by 200) then resized (128by128) frame of DPpp
-    _refined_com[0] = _refined_com3D[0] / _refined_com3D[2] * _fx + _ux
-    _refined_com[1] = _refined_com3D[1] / _refined_com3D[2] * _fy + _uy
-    def transform_resize_crop(M, xc, yc):
-        '''
-        transform from cropped-resized frame to the original 320by240 frame
-        '''
-        v = np.array([xc, yc, 1])
-        invM = np.linalg.inv(M)
-        cdd = np.inner(invM[2, :], v)
-        x = np.inner(invM[0, :], v) * cdd
-        y = np.inner(invM[1, :], v) * cdd
-        return x, y
-
-    refined_com_x, refined_com_y = transform_resize_crop(M=Seq_0.data[0].T, xc=_refined_com[0], yc=_refined_com[1])
-    # iPhone calibration
-    _h = 240.
-    _w = 320.
-    _iw = 3088.0
-    _ih = 2316.0
-    xscale = _h / _ih
-    yscale = _w / _iw
-    _fx = 2880.0796 * xscale
-    _fy = 2880.0796 * yscale
-    _ux = 1153.2035 * xscale
-    _uy = 1546.5824 * yscale
-    refined_com3D = np.empty((2, 1))
-    refined_com3D[0] = (refined_com_x - _ux) * joints[0][0][2] / _fx
-    refined_com3D[1] = (refined_com_y - _uy) * joints[0][0][2] / _fy
-    refined_center_3D_corrected = np.append(refined_com3D, joints[0][0][2])
-    np.savetxt('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/{}_3Drefinedcom.txt'.format('iPhone_30hand50wall'), refined_center_3D_corrected, fmt='%4.12f', newline=' ')
-# end save 3D joint data for 320*240 frame #############################################################################
-
-    np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T.npy', Seq_0.data[0].T)
-
-
-    # hpe = MSRAHandposeEvaluation(gt3D, joints)
-    # hpe.subfolder += '/'+eval_prefix+'/'
-    # print("Mean error: {}mm, max error: {}mm".format(hpe.getMeanError(), hpe.getMaxError()))
-    #
-    # # save results
-    # cPickle.dump(joints, open("./eval/{}/result_{}_{}.pkl".format(eval_prefix,os.path.split(__file__)[1],eval_prefix), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
-    #
-    # print "Testing baseline"
-    #
-    # #################################
-    # # BASELINE
-    # com = [j.com for j in testSeqs[0].data]
-    # hpe_com = MSRAHandposeEvaluation(gt3D, numpy.asarray(com).reshape((len(gt3D), 1, 3)))
-    # hpe_com.subfolder += '/'+eval_prefix+'/'
-    # print("Mean error: {}mm".format(hpe_com.getMeanError()))
-    #
-    # hpe.plotEvaluation(eval_prefix, methodName='Our regr', baseline=[('CoM', hpe_com)])
+    np.save("./eval/{}/refined_com3D.npy".format(eval_prefix), refined_com3D)
+# # start save 3D joint data for 320*240 frame ###########################################################################
+#     # iPhone calibration
+#     _h = 128.
+#     _w = 128.
+#     _iw = 3088.0
+#     _ih = 2316.0
+#     xscale = _h / _ih
+#     yscale = _w / _iw
+#     _fx = 2880.0796 * xscale
+#     _fy = 2880.0796 * yscale
+#     _ux = 1153.2035 * xscale
+#     _uy = 1546.5824 * yscale
+#     _refined_com = np.empty((2, 1))
+#     _refined_com3D = joints[0][0] # joints in 3D for cropped(200 by 200) then resized (128by128) frame of DPpp
+#     _refined_com[0] = _refined_com3D[0] / _refined_com3D[2] * _fx + _ux
+#     _refined_com[1] = _refined_com3D[1] / _refined_com3D[2] * _fy + _uy
+#     def transform_resize_crop(M, xc, yc):
+#         '''
+#         transform from cropped-resized frame to the original 320by240 frame
+#         '''
+#         v = np.array([xc, yc, 1])
+#         invM = np.linalg.inv(M)
+#         cdd = np.inner(invM[2, :], v)
+#         x = np.inner(invM[0, :], v) * cdd
+#         y = np.inner(invM[1, :], v) * cdd
+#         return x, y
+#
+#     refined_com_x, refined_com_y = transform_resize_crop(M=Seq_0.data[0].T, xc=_refined_com[0], yc=_refined_com[1])
+#     # iPhone calibration
+#     _h = 240.
+#     _w = 320.
+#     _iw = 3088.0
+#     _ih = 2316.0
+#     xscale = _h / _ih
+#     yscale = _w / _iw
+#     _fx = 2880.0796 * xscale
+#     _fy = 2880.0796 * yscale
+#     _ux = 1153.2035 * xscale
+#     _uy = 1546.5824 * yscale
+#     refined_com3D = np.empty((2, 1))
+#     refined_com3D[0] = (refined_com_x - _ux) * joints[0][0][2] / _fx
+#     refined_com3D[1] = (refined_com_y - _uy) * joints[0][0][2] / _fy
+#     refined_center_3D_corrected = np.append(refined_com3D, joints[0][0][2])
+#     np.savetxt('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/{}_3Drefinedcom.txt'.format('iPhone_30hand50wall'), refined_center_3D_corrected, fmt='%4.12f', newline=' ')
+# # end save 3D joint data for 320*240 frame #############################################################################
+#
+#     np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T.npy', Seq_0.data[0].T)
+#
+#
+#     # hpe = MSRAHandposeEvaluation(gt3D, joints)
+#     # hpe.subfolder += '/'+eval_prefix+'/'
+#     # print("Mean error: {}mm, max error: {}mm".format(hpe.getMeanError(), hpe.getMaxError()))
+#     #
+#     # # save results
+#     # cPickle.dump(joints, open("./eval/{}/result_{}_{}.pkl".format(eval_prefix,os.path.split(__file__)[1],eval_prefix), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
+#     #
+#     # print "Testing baseline"
+#     #
+#     # #################################
+#     # # BASELINE
+#     # com = [j.com for j in testSeqs[0].data]
+#     # hpe_com = MSRAHandposeEvaluation(gt3D, numpy.asarray(com).reshape((len(gt3D), 1, 3)))
+#     # hpe_com.subfolder += '/'+eval_prefix+'/'
+#     # print("Mean error: {}mm".format(hpe_com.getMeanError()))
+#     #
+#     # hpe.plotEvaluation(eval_prefix, methodName='Our regr', baseline=[('CoM', hpe_com)])
     print('ended')

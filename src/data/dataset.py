@@ -23,7 +23,7 @@ along with DeepPrior.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import numpy
-from data.importers import NYUImporter, ICVLImporter, MSRA15Importer, iPhoneImporter
+from data.importers import NYUImporter, ICVLImporter, MSRA15Importer, iPhoneImporter, iPadImporter
 
 
 __author__ = "Paul Wohlhart <wohlhart@icg.tugraz.at>, Markus Oberweger <oberweger@icg.tugraz.at>"
@@ -69,57 +69,93 @@ class Dataset(object):
         self._imgSeqs = value
         self._imgStacks = {}
 
-    def imgStackDepthOnly(self, seqName, normZeroOne=False):
-        imgSeq = None
-        for seq in self._imgSeqs:
-            if seq.name == seqName:
-                imgSeq = seq
-                break
-        if imgSeq is None:
-            return []
+    def imgStackDepthOnly(self, seqName, normZeroOne=False, mode=None):
+        if mode is None:
+            imgSeq = None
+            for seq in self._imgSeqs:
+                if seq.name == seqName:
+                    imgSeq = seq
+                    break
+            if imgSeq is None:
+                return []
 
-        if seqName not in self._imgStacks:
-            # compute the stack from the sequence
-            numImgs = len(imgSeq.data)
-            data0 = numpy.asarray(imgSeq.data[0].dpt, 'float32')
-# ########################################################################################################################
-#             # plot
-#             import matplotlib.pyplot as plt
-#             import matplotlib
-#             import numpy as np
-#             fig, ax = plt.subplots()
-#             # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
-#             ax.imshow(data0, cmap=matplotlib.cm.jet)
-#             plt.show()
-#             plt.close()
-# ########################################################################################################################
-            label0 = numpy.asarray(imgSeq.data[0].gtorig, 'float32')
-            h, w = data0.shape
-            j, d = label0.shape
-            imgStack = numpy.zeros((numImgs, 1, h, w), dtype='float32')  # num_imgs,stack_size,rows,cols
-            labelStack = numpy.zeros((numImgs, j, d), dtype='float32')  # num_imgs,joints,dim
-            for i in xrange(numImgs):
-                if normZeroOne:
-                    imgD = numpy.asarray(imgSeq.data[i].dpt.copy(), 'float32')
-                    imgD[imgD == 0] = imgSeq.data[i].com[2] + (imgSeq.config['cube'][2] / 2.)
-                    imgD -= (imgSeq.data[i].com[2] - (imgSeq.config['cube'][2] / 2.))
-                    imgD /= imgSeq.config['cube'][2]
+            if seqName not in self._imgStacks:
+                # compute the stack from the sequence
+                numImgs = len(imgSeq.data)
+                data0 = numpy.asarray(imgSeq.data[0].dpt, 'float32')
+    # ########################################################################################################################
+    #             # plot
+    #             import matplotlib.pyplot as plt
+    #             import matplotlib
+    #             import numpy as np
+    #             fig, ax = plt.subplots()
+    #             # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+    #             ax.imshow(data0, cmap=matplotlib.cm.jet)
+    #             plt.show()
+    #             plt.close()
+    # ########################################################################################################################
+                label0 = numpy.asarray(imgSeq.data[0].gtorig, 'float32')
+                h, w = data0.shape
+                j, d = label0.shape
+                imgStack = numpy.zeros((numImgs, 1, h, w), dtype='float32')  # num_imgs,stack_size,rows,cols
+                labelStack = numpy.zeros((numImgs, j, d), dtype='float32')  # num_imgs,joints,dim
+                for i in xrange(numImgs):
+                    if normZeroOne:
+                        imgD = numpy.asarray(imgSeq.data[i].dpt.copy(), 'float32')
+                        imgD[imgD == 0] = imgSeq.data[i].com[2] + (imgSeq.config['cube'][2] / 2.)
+                        imgD -= (imgSeq.data[i].com[2] - (imgSeq.config['cube'][2] / 2.))
+                        imgD /= imgSeq.config['cube'][2]
+                    else:
+                        imgD = numpy.asarray(imgSeq.data[i].dpt.copy(), 'float32')
+                        imgD[imgD == 0] = imgSeq.data[i].com[2] + (imgSeq.config['cube'][2] / 2.)
+                        imgD -= imgSeq.data[i].com[2]
+                        imgD /= (imgSeq.config['cube'][2] / 2.)
+
+                    imgStack[i] = imgD
+                    labelStack[i] = numpy.asarray(imgSeq.data[i].gt3Dcrop, dtype='float32') / (imgSeq.config['cube'][2] / 2.)
+
+                if self.localCache:
+                    self._imgStacks[seqName] = imgStack
+                    self._labelStacks[seqName] = labelStack
                 else:
-                    imgD = numpy.asarray(imgSeq.data[i].dpt.copy(), 'float32')
-                    imgD[imgD == 0] = imgSeq.data[i].com[2] + (imgSeq.config['cube'][2] / 2.)
-                    imgD -= imgSeq.data[i].com[2]
-                    imgD /= (imgSeq.config['cube'][2] / 2.)
+                    return imgStack, labelStack
 
-                imgStack[i] = imgD
-                labelStack[i] = numpy.asarray(imgSeq.data[i].gt3Dcrop, dtype='float32') / (imgSeq.config['cube'][2] / 2.)
+            return self._imgStacks[seqName], self._labelStacks[seqName]
+        elif mode=='iPad':
+                data0 = numpy.asarray(seqName[0].data[0].dpt, 'float32')
+                ########################################################################################################################
+                # plot
+                import matplotlib.pyplot as plt
+                import matplotlib
+                import numpy as np
+                fig, ax = plt.subplots()
+                # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+                dm0 = ax.imshow(data0, cmap=matplotlib.cm.jet, label='data0')
+                fig.colorbar(dm0, ax=ax)
+                plt.title('data0')
+                plt.show()
+                ########################################################################################################################
+                h, w = data0.shape
+                imgStack = numpy.zeros((1, 1, h, w), dtype='float32')  # num_imgs,stack_size,rows,cols
+                imgD = numpy.asarray(seqName[0].data[0].dpt.copy(), 'float32')
+                imgD[imgD == 0] = seqName[0].data[0].com[2] + (seqName[0].config['cube'][2] / 2.)
+                imgD -= seqName[0].data[0].com[2]
+                imgD /= (seqName[0].config['cube'][2] / 2.)
+                ########################################################################################################################
+                # plot
+                import matplotlib.pyplot as plt
+                import matplotlib
+                import numpy as np
+                fig, ax = plt.subplots()
+                # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+                dm1 = ax.imshow(imgD, cmap=matplotlib.cm.jet, label='imgD: test_data')
+                fig.colorbar(dm1, ax=ax)
+                plt.title('imgD: test_data')
+                plt.show()
+                ########################################################################################################################
+                imgStack[0] = imgD
 
-            if self.localCache:
-                self._imgStacks[seqName] = imgStack
-                self._labelStacks[seqName] = labelStack
-            else:
-                return imgStack, labelStack
-
-        return self._imgStacks[seqName], self._labelStacks[seqName]
+                return imgStack
 
 
 class ICVLDataset(Dataset):
@@ -144,6 +180,17 @@ class iPhoneDataset(Dataset):
             basepath = '../../data/iPhone/'
 
         self.lmi = iPhoneImporter(basepath)
+
+class iPadDataset(Dataset):
+    def __init__(self, imgSeqs=None, basepath=None, localCache=False):
+        """
+        constructor
+        """
+        super(iPadDataset, self).__init__(imgSeqs, localCache)
+        # if basepath is None:
+        #     basepath = '../../data/iPhone/'
+
+        self.lmi = iPadImporter(basepath)
 
 
 class MSRA15Dataset(Dataset):

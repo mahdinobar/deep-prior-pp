@@ -46,7 +46,7 @@ class HandDetector(object):
     RESIZE_CV2_NN = 1
     RESIZE_CV2_LINEAR = 2
 
-    def __init__(self, dpt, fx, fy, importer=None, refineNet=None):
+    def __init__(self, dpt, fx, fy, importer=None, refineNet=None, maxDepth=None, minDepth=None):
         """
         Constructor
         :param dpt: depth image
@@ -54,8 +54,13 @@ class HandDetector(object):
         :param fy: camera focal lenght
         """
         self.dpt = dpt
-        self.maxDepth = min(350, dpt.max())
-        self.minDepth = max(10, dpt.min())
+        if maxDepth is not None and minDepth is not None:
+            self.maxDepth = min(maxDepth, dpt.max())
+            self.minDepth = max(minDepth, dpt.min())
+        else:
+            self.maxDepth = min(400, dpt.max())
+            self.minDepth = max(10, dpt.min())
+
         # set values out of range to 0
         self.dpt[self.dpt > self.maxDepth] = 0.
         self.dpt[self.dpt < self.minDepth] = 0.
@@ -393,7 +398,8 @@ class HandDetector(object):
         import matplotlib.pyplot as plt
         import matplotlib
         fig, ax = plt.subplots()
-        ax.imshow(self.dpt, cmap=matplotlib.cm.jet)
+        dm = ax.imshow(self.dpt, cmap=matplotlib.cm.jet)
+        fig.colorbar(dm, ax=ax)
 
         if len(size) != 3 or len(dsize) != 2:
             raise ValueError("Size must be 3D and dsize 2D bounding box")
@@ -449,10 +455,10 @@ class HandDetector(object):
         # ax2.imshow(cropped, cmap=matplotlib.cm.jet)
         # plt.show()
         # ########################################################################################################################
-        ax.plot(com[0],com[1],marker='o', c='r', markersize=10)
+        ax.plot(com[0],com[1],marker='o', c='r', markersize=10, label='after self.refineNet and docom')
         # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/com.png')
+        ax.legend()
         plt.show()
-        plt.close()
         #############
         wb = (xend - xstart)
         hb = (yend - ystart)
