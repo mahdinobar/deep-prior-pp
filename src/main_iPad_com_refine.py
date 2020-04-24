@@ -294,11 +294,8 @@ if __name__ == '__main__':
     # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/iPhone_30hand50wall.png')
     ax.legend()
     plt.show()
-<<<<<<< HEAD
     np.save("./eval/{}/refined_com3D.npy".format(eval_prefix), refined_com3D)
-=======
-    np.save("./eval/{}/refined_com3D.pkl".format(eval_prefix), refined_com3D)
->>>>>>> fcf1b2f80c82016e1538c79113a0ed8612df38d5
+
 # # start save 3D joint data for 320*240 frame ###########################################################################
 #     # iPhone calibration
 #     _h = 128.
