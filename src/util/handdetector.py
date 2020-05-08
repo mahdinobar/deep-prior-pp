@@ -215,7 +215,7 @@ class HandDetector(object):
         :return: xstart, xend, ystart, yend, zstart, zend [z in mm, (x,y) in pxls]
         """
         if numpy.isclose(com[2], 0.):
-            print "Warning: CoM ill-defined!"
+            print("Warning: CoM ill-defined!")
             xstart = self.dpt.shape[0]//4
             xend = xstart + self.dpt.shape[0]//2
             ystart = self.dpt.shape[1]//4
@@ -385,7 +385,7 @@ class HandDetector(object):
 
         return ret
 
-    def cropArea3D(self, com=None, size=(250, 250, 250), dsize=(128, 128), docom=False):
+    def cropArea3D(self, com=None, size=(250, 250, 250), dsize=(128, 128), docom=False, vis=None):
         """
         Crop area of hand in 3D volumina, scales inverse to the distance of hand to camera
         :param com: center of mass, in image coordinates (x,y,z), z in mm
@@ -393,14 +393,6 @@ class HandDetector(object):
         :param dsize: (x,y) extent of the destination size
         :return: cropped hand image, transformation matrix for joints, CoM in image coordinates
         """
-
-        # print com, self.importer.jointImgTo3D(com)
-        import matplotlib.pyplot as plt
-        import matplotlib
-        fig, ax = plt.subplots()
-        dm = ax.imshow(self.dpt, cmap=matplotlib.cm.jet)
-        fig.colorbar(dm, ax=ax)
-
         if len(size) != 3 or len(dsize) != 2:
             raise ValueError("Size must be 3D and dsize 2D bounding box")
 
@@ -413,33 +405,33 @@ class HandDetector(object):
         # crop patch from source
         cropped = self.getCrop(self.dpt, xstart, xend, ystart, yend, zstart, zend)
         # ax.imshow(cropped, cmap=matplotlib.cm.jet)
-        ax.plot(com[0],com[1],marker='+', markersize=30, label='center of mass inside minDepth and maxDepth')
 
         #############
         # for simulating COM within cube
         if docom is True:
-            com = self.calculateCoM(cropped) # comUVD calculate com of cropped image (cropped wrt cube e.g 200 by 200 by (minDepth - maxDepth)
-            if numpy.allclose(com, 0.):
-                com[2] = cropped[cropped.shape[0]//2, cropped.shape[1]//2]
-                if numpy.isclose(com[2], 0):
-                    com[2] = 300
-            com[0] += xstart
-            com[1] += ystart
+            _com = self.calculateCoM(cropped) # comUVD calculate com of cropped image (cropped wrt cube e.g 200 by 200 by (minDepth - maxDepth)
+            if numpy.allclose(_com, 0.):
+                _com[2] = cropped[cropped.shape[0]//2, cropped.shape[1]//2]
+                if numpy.isclose(_com[2], 0):
+                    _com[2] = 300
+            _com[0] += xstart
+            _com[1] += ystart
             # here we already have com wrt input depth map
             # calculate boundaries
-            xstart, xend, ystart, yend, zstart, zend = self.comToBounds(com, size)
+            xstart, xend, ystart, yend, zstart, zend = self.comToBounds(_com, size)
 
             # crop patch from source
             cropped = self.getCrop(self.dpt, xstart, xend, ystart, yend, zstart, zend)
-        ax.plot(com[0],com[1],marker='x', markersize=30)
+            com = _com
 
         ##############
         if docom is True and self.refineNet is not None and self.importer is not None:
             rz = self.resizeCrop(cropped, dsize)
             newCom3D = self.refineCoM(rz, size, com) + self.importer.jointImgTo3D(com)
-            com = self.importer.joint3DToImg(newCom3D)
-            if numpy.allclose(com, 0.):
-                com[2] = cropped[cropped.shape[0]//2, cropped.shape[1]//2]
+            __com = self.importer.joint3DToImg(newCom3D)
+            if numpy.allclose(__com, 0.):
+                __com[2] = cropped[cropped.shape[0]//2, cropped.shape[1]//2]
+            com = __com
 
             # calculate boundaries
             xstart, xend, ystart, yend, zstart, zend = self.comToBounds(com, size)
@@ -455,17 +447,28 @@ class HandDetector(object):
         # ax2.imshow(cropped, cmap=matplotlib.cm.jet)
         # plt.show()
         # ########################################################################################################################
-        ax.plot(com[0],com[1],marker='o', c='r', markersize=10, label='after self.refineNet and docom')
-        # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/com.png')
-        ax.legend()
-        plt.show()
-        #############
+        if vis == True:
+            # print com, self.importer.jointImgTo3D(com)
+            import matplotlib.pyplot as plt
+            import matplotlib
+            fig, ax = plt.subplots()
+            dm = ax.imshow(self.dpt, cmap=matplotlib.cm.jet)
+            fig.colorbar(dm, ax=ax)
+            ax.plot(com[0],com[1],marker='+', markersize=30, label='center of mass inside minDepth and maxDepth')
+            # 'COM at cropped wrt cube centerd on initial com and with size e.g 200 by 200 by (minDepth - maxDepth)'
+            ax.plot(_com[0],_com[1],marker='x', c='m', markersize=30, label='COM after docom')
+
+            # ax.plot(__com[0], __com[1], marker='o', c='r', markersize=10, label='after self.refineNet and docom')
+            # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/com.png')
+            ax.legend()
+            plt.show()
+            #############
         wb = (xend - xstart)
         hb = (yend - ystart)
         if wb > hb:
-            sz = (dsize[0], hb * dsize[0] / wb)
+            sz = (int(dsize[0]), int(hb * dsize[0] / wb))
         else:
-            sz = (wb * dsize[1] / hb, dsize[1])
+            sz = (int(wb * dsize[1] / hb), dsize[1])
 
         # print com, sz, cropped.shape, xstart, xend, ystart, yend, hb, wb, zstart, zend
         trans = numpy.eye(3)

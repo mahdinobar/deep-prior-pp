@@ -233,11 +233,11 @@ if __name__ == '__main__':
     # jts = poseNet.computeOutput([test_data, test_data2, test_data4])
     jts = poseNet.computeOutput([test_data, test_data[:, :, 32:96, 32:96], test_data[:, :, 48:80, 48:80]])
     joints = []
-    for i in xrange(test_data.shape[0]):
+    for i in range(test_data.shape[0]):
         joints.append(jts[i].reshape(1, 3)*(testSeqs[0].config['cube'][2]/2.) + testSeqs[0].data[i].com)
-    print "jts = {}".format(jts)
+    print("jts = {}".format(jts))
     # 3D coordinates of the refined center = joints
-    print "joints = {}".format(joints)
+    print("joints = {}".format(joints))
 
     # iPad calibration
     _h = 240.

@@ -21,7 +21,7 @@ along with DeepPrior.  If not, see <http://www.gnu.org/licenses/>.
 
 import numpy
 import matplotlib
-matplotlib.use('Agg')  # plot to file
+# matplotlib.use('Agg')  # plot to file
 import matplotlib.pyplot as plt
 import os
 import cPickle
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     # save results
     cPickle.dump(joints, open("./eval/{}/result_{}_{}.pkl".format(eval_prefix, os.path.split(__file__)[1], eval_prefix), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
 
-    print "Testing baseline"
+    print("Testing baseline")
 
     #################################
     # BASELINE

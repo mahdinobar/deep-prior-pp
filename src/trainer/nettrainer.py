@@ -375,7 +375,7 @@ class NetTrainer(object):
             alignSize = self.getNumSamplesPerMacroBatch()
 
         if alignSize < data.shape[0]:
-            print "WARNING: aligned size < data size ({}<{})".format(alignSize, data.shape[0])
+            print("WARNING: aligned size < data size ({}<{})".format(alignSize, data.shape[0]))
 
         # pad with zeros to macro batch size, but only along dimension 0 ie samples
         if data.shape[0] == alignSize:
@@ -876,9 +876,9 @@ class NetTrainer(object):
 
                     self.poseNet.unsetDeterministic()
 
-                    print "{}: epoch {}, LR {}, minibatch {}/{}, validation cost {} error {}".format(
+                    print("{}: epoch {}, LR {}, minibatch {}/{}, validation cost {} error {}".format(
                         time.ctime(), self.epoch, learning_rate, minibatch_index + 1,
-                        self.getNumFullMiniBatches(), this_validation_loss, [vo[-1] for vo in validation_obs])
+                        self.getNumFullMiniBatches(), this_validation_loss, [vo[-1] for vo in validation_obs]))
 
                     # if we got the best validation score until now
                     if this_validation_loss < best_validation_loss:

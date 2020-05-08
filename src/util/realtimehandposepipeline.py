@@ -154,7 +154,7 @@ class RealtimeHandposePipeline(object):
             start = time.time()
             ret, frame = device.getDepth()
             if ret is False:
-                print "Error while reading frame."
+                print("Error while reading frame.")
                 time.sleep(0.1)
                 continue
             if self.verbose is True:
@@ -169,7 +169,7 @@ class RealtimeHandposePipeline(object):
             fid += 1
 
         # we are done
-        print "Exiting producer..."
+        print("Exiting producer...")
         device.stop()
         return True
 
@@ -215,7 +215,7 @@ class RealtimeHandposePipeline(object):
 
         cv2.destroyAllWindows()
         # we are done
-        print "Exiting consumer..."
+        print("Exiting consumer...")
         return True
 
     def processVideoThreaded(self, device):
@@ -225,10 +225,10 @@ class RealtimeHandposePipeline(object):
         :return: None
         """
 
-        print "Create producer process..."
+        print("Create producer process...")
         p = Process(target=self.threadProducer, args=[device])
         p.daemon = True
-        print"Create consumer process..."
+        print("Create consumer process...")
         c = Process(target=self.threadConsumer, args=[])
         c.daemon = True
         p.start()
@@ -256,7 +256,7 @@ class RealtimeHandposePipeline(object):
             start = time.time()
             ret, frame = device.getDepth()
             if ret is False:
-                print "Error while reading frame."
+                print("Error while reading frame.")
                 time.sleep(0.1)
                 continue
             if self.verbose is True:

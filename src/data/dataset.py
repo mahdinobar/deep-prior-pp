@@ -69,7 +69,7 @@ class Dataset(object):
         self._imgSeqs = value
         self._imgStacks = {}
 
-    def imgStackDepthOnly(self, seqName, normZeroOne=False, mode=None):
+    def imgStackDepthOnly(self, seqName, normZeroOne=False, mode=None, vis=None):
         if mode is None:
             imgSeq = None
             for seq in self._imgSeqs:
@@ -123,36 +123,41 @@ class Dataset(object):
             return self._imgStacks[seqName], self._labelStacks[seqName]
         elif mode=='iPad':
                 data0 = numpy.asarray(seqName[0].data[0].dpt, 'float32')
-                ########################################################################################################################
-                # plot
-                import matplotlib.pyplot as plt
-                import matplotlib
-                import numpy as np
-                fig, ax = plt.subplots()
-                # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
-                dm0 = ax.imshow(data0, cmap=matplotlib.cm.jet, label='data0')
-                fig.colorbar(dm0, ax=ax)
-                plt.title('data0')
-                plt.show()
-                ########################################################################################################################
+
+                if vis==True:
+                    ########################################################################################################################
+                    # plot
+                    import matplotlib.pyplot as plt
+                    import matplotlib
+                    import numpy as np
+                    fig, ax = plt.subplots()
+                    # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+                    dm0 = ax.imshow(data0, cmap=matplotlib.cm.jet, label='data0')
+                    fig.colorbar(dm0, ax=ax)
+                    plt.title('data0')
+                    plt.show()
+                    ########################################################################################################################
+
                 h, w = data0.shape
                 imgStack = numpy.zeros((1, 1, h, w), dtype='float32')  # num_imgs,stack_size,rows,cols
                 imgD = numpy.asarray(seqName[0].data[0].dpt.copy(), 'float32')
                 imgD[imgD == 0] = seqName[0].data[0].com[2] + (seqName[0].config['cube'][2] / 2.)
                 imgD -= seqName[0].data[0].com[2]
                 imgD /= (seqName[0].config['cube'][2] / 2.)
-                ########################################################################################################################
-                # plot
-                import matplotlib.pyplot as plt
-                import matplotlib
-                import numpy as np
-                fig, ax = plt.subplots()
-                # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
-                dm1 = ax.imshow(imgD, cmap=matplotlib.cm.jet, label='imgD: test_data')
-                fig.colorbar(dm1, ax=ax)
-                plt.title('imgD: test_data')
-                plt.show()
-                ########################################################################################################################
+
+                if vis==True:
+                    ########################################################################################################################
+                    # plot
+                    import matplotlib.pyplot as plt
+                    import matplotlib
+                    import numpy as np
+                    fig, ax = plt.subplots()
+                    # ax.imshow(Seq_0.data[0].dpt, cmap=matplotlib.cm.jet)
+                    dm1 = ax.imshow(imgD, cmap=matplotlib.cm.jet, label='imgD: test_data: input to refinenet ~centered calculated com with cube size')
+                    fig.colorbar(dm1, ax=ax)
+                    plt.title('imgD: input to COMrefinenet')
+                    plt.show()
+                    ########################################################################################################################
                 imgStack[0] = imgD
 
                 return imgStack

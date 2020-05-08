@@ -523,10 +523,10 @@ class HandposeEvaluation(object):
                 png_writer.Write()
             elif key == "c":
                 camera = renderer.GetActiveCamera()
-                print "Camera settings:"
-                print "  * position:        %s" % (camera.GetPosition(),)
-                print "  * focal point:     %s" % (camera.GetFocalPoint(),)
-                print "  * up vector:       %s" % (camera.GetViewUp(),)
+                print("Camera settings:")
+                print("  * position:        %s" % (camera.GetPosition(),))
+                print("  * focal point:     %s" % (camera.GetFocalPoint(),))
+                print("  * up vector:       %s" % (camera.GetViewUp(),))
 
         class vtkTimerCallback():
             def __init__(self):

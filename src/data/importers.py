@@ -31,7 +31,7 @@ import struct
 from data.basetypes import DepthFrame, NamedImgSequence, DepthFrame_iPad, NamedImgSequence_iPad
 from util.handdetector import HandDetector
 from data.transformations import transformPoints2D
-import cPickle
+import pickle
 import open3d as o3d
 from PIL import Image
 
@@ -262,7 +262,7 @@ class ICVLImporter(DepthImporter):
             if os.path.isfile(pickleCache):
                 print("Loading cache data from {}".format(pickleCache))
                 f = open(pickleCache, 'rb')
-                (seqName, data, config) = cPickle.load(f)
+                (seqName, data, config) = pickle.load(f)
                 f.close()
 
                 # shuffle data
@@ -293,7 +293,7 @@ class ICVLImporter(DepthImporter):
                                                                            HandDetector.detectionModeToString(docom, self.refineNet is not None))
                         print("Loading cache data from {}".format(pickleCache))
                         f = open(pickleCache, 'rb')
-                        (seqName, fullData, config) = cPickle.load(f)
+                        (seqName, fullData, config) = pickle.load(f)
                         f.close()
                         # load rest of data
                         for i in range(1, len(subSeq)):
@@ -302,7 +302,7 @@ class ICVLImporter(DepthImporter):
                                                                                HandDetector.detectionModeToString(docom, self.refineNet is not None))
                             print("Loading cache data from {}".format(pickleCache))
                             f = open(pickleCache, 'rb')
-                            (seqName, data, config) = cPickle.load(f)
+                            (seqName, data, config) = pickle.load(f)
                             fullData.extend(data)
                             f.close()
 
@@ -412,7 +412,7 @@ class ICVLImporter(DepthImporter):
         if self.useCache:
             print("Save cache data to {}".format(pickleCache))
             f = open(pickleCache, 'wb')
-            cPickle.dump((seqName, data, config), f, protocol=cPickle.HIGHEST_PROTOCOL)
+            pickle.dump((seqName, data, config), f, protocol=pickle.HIGHEST_PROTOCOL)
             f.close()
 
         # shuffle data
@@ -575,8 +575,8 @@ class iPhoneImporter(DepthImporter):
 # temporary: must be changed ###########################################################################################
         color_raw = o3d.io.read_image('/home/mahdi/HVR/hvr/hand_pcl_iPhone/Tom_set_2/iPhone/hand30wall50_color.png')
         depth_raw = o3d.io.read_image(filename)
-        color_raw = o3d.geometry.Image(np.asarray(color_raw))
-        rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+        color_raw = o3d.Image(np.asarray(color_raw))
+        rgbd_image = o3d.RGBDImage.create_from_color_and_depth(
             color_raw, depth_raw, depth_scale=0.529, depth_trunc=30.0, convert_rgb_to_intensity=False)
         # iPhone calibration
         h = np.asarray(color_raw).shape[0]  # 480
@@ -593,7 +593,7 @@ class iPhoneImporter(DepthImporter):
         _cy = 1546.5824 * yscale
         setIntrinsic = o3d.camera.PinholeCameraIntrinsic()
         setIntrinsic.set_intrinsics(width=w, height=h, fx=_fx, fy=_fy, cx=_cx, cy=_cy)
-        pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+        pcd = o3d.PointCloud.create_from_rgbd_image(
             rgbd_image,
             setIntrinsic)
         # Flip it, otherwise the pointcloud will be upside down
@@ -638,7 +638,7 @@ class iPhoneImporter(DepthImporter):
         if self.useCache & os.path.isfile(pickleCache):
             print("Loading cache data from {}".format(pickleCache))
             f = open(pickleCache, 'rb')
-            (seqName, data, config) = cPickle.load(f)
+            (seqName, data, config) = pickle.load(f)
             f.close()
             # shuffle data
             if shuffle and rng is not None:
@@ -765,7 +765,7 @@ class iPhoneImporter(DepthImporter):
         if self.useCache:
             print("Save cache data to {}".format(pickleCache))
             f = open(pickleCache, 'wb')
-            cPickle.dump((seqName, data, config), f, protocol=cPickle.HIGHEST_PROTOCOL)
+            pickle.dump((seqName, data, config), f, protocol=pickle.HIGHEST_PROTOCOL)
             f.close()
 
         # shuffle data
@@ -1046,7 +1046,7 @@ class MSRA15Importer(DepthImporter):
         if self.useCache & os.path.isfile(pickleCache):
             print("Loading cache data from {}".format(pickleCache))
             f = open(pickleCache, 'rb')
-            (seqName, data, config) = cPickle.load(f)
+            (seqName, data, config) = pickle.load(f)
             f.close()
             # shuffle data
             if shuffle and rng is not None:
@@ -1169,7 +1169,7 @@ class MSRA15Importer(DepthImporter):
         if self.useCache:
             print("Save cache data to {}".format(pickleCache))
             f = open(pickleCache, 'wb')
-            cPickle.dump((seqName, data, config), f, protocol=cPickle.HIGHEST_PROTOCOL)
+            pickle.dump((seqName, data, config), f, protocol=pickle.HIGHEST_PROTOCOL)
             f.close()
 
         # shuffle data
@@ -1397,7 +1397,7 @@ class NYUImporter(DepthImporter):
             if os.path.isfile(pickleCache):
                 print("Loading cache data from {}".format(pickleCache))
                 f = open(pickleCache, 'rb')
-                (seqName, data, config) = cPickle.load(f)
+                (seqName, data, config) = pickle.load(f)
                 f.close()
 
                 # shuffle data
@@ -1503,7 +1503,7 @@ class NYUImporter(DepthImporter):
         if self.useCache:
             print("Save cache data to {}".format(pickleCache))
             f = open(pickleCache, 'wb')
-            cPickle.dump((seqName, data, config), f, protocol=cPickle.HIGHEST_PROTOCOL)
+            pickle.dump((seqName, data, config), f, protocol=pickle.HIGHEST_PROTOCOL)
             f.close()
 
         # shuffle data
@@ -1750,12 +1750,13 @@ class iPadImporter(DepthImporter):
 
     """
 
-    def __init__(self, basepath, useCache=True, cacheDir='./cache/', refineNet=None, detectorNet=None, derotNet=None, hand=None):
+    def __init__(self, base, args=None, useCache=True, cacheDir='./cache/', refineNet=None, detectorNet=None, derotNet=None, hand=None):
         """
         Constructor
-        :param basepath: base path of the iPhone Truedepth
+        :param basepath: base path of the iPhone Truedepth or raw depth map itself in mm for predict
         :return:
         """
+
         # iPhone calibration
         _h = 240.
         _w = 320.
@@ -1765,14 +1766,12 @@ class iPadImporter(DepthImporter):
         yscale = _w / iw
         _fx = 2883.24 * xscale
         _fy = 2883.24 * yscale
-        # _cx = 1546.5824 * xscale
-        # _cy = 1153.2035 * yscale
         _cx = 1154.66 * xscale
         _cy = 1536.17 * yscale
         super(iPadImporter, self).__init__(_fx, _fy, _cx, _cy, hand)  # see Sun et.al.
 
         self.depth_map_size = (320, 240)
-        self.basepath = basepath
+        self.base = base
         self.useCache = useCache
         self.cacheDir = cacheDir
         self.refineNet = refineNet
@@ -1780,8 +1779,7 @@ class iPadImporter(DepthImporter):
         self.detectorNet = detectorNet
         self.numJoints = 21
         self.crop_joint_idx = 5
-        # self.default_cubes = {'P0': (200, 200, 200)} # cube all in mm
-        # self.sides = {'P0': 'right'}
+        self.args = args
 
     def loadDepthMap(self):
         """
@@ -1789,7 +1787,17 @@ class iPadImporter(DepthImporter):
         :param filename: file name to load
         :return: image data of depth image in mm for iPad resized to  shape(240by320)
         """
-        iDepth = np.loadtxt(self.basepath, dtype=np.float32) * 1000  # mm
+        iDepth = np.loadtxt(self.base, dtype=np.float32) * 1000  # mm
+        iDepth = np.asarray(Image.fromarray(iDepth).resize((320, 240)))
+        return np.copy(iDepth)
+
+    def loadDepthMap_predict(self):
+        """
+        Read a depth-map in txt format of iPad
+        :param filename: file name to load
+        :return: image data of depth image in mm for iPad resized to  shape(240by320)
+        """
+        iDepth = self.base.astype(np.float32) # mm
         iDepth = np.asarray(Image.fromarray(iDepth).resize((320, 240)))
         return np.copy(iDepth)
 
@@ -1827,7 +1835,7 @@ class iPadImporter(DepthImporter):
         # if self.useCache & os.path.isfile(pickleCache):
         #     print("Loading cache data from {}".format(pickleCache))
         #     f = open(pickleCache, 'rb')
-        #     (seqName, data, config) = cPickle.load(f)
+        #     (seqName, data, config) = pickle.load(f)
         #     f.close()
         #     # shuffle data
         #     if shuffle and rng is not None:
@@ -1922,7 +1930,7 @@ class iPadImporter(DepthImporter):
         # print gt3D
         # self.showAnnotatedDepth(DepthFrame(dpt,gtorig,gtorig,0,gt3Dorig,gt3Dcrop,com3D,dptFileName,'',''))
         # Detect hand and threshold between maxDepth and minDepth
-        hd = HandDetector(dpt, self.fx, self.fy, refineNet=self.refineNet, importer=self, maxDepth=750, minDepth=700)
+        hd = HandDetector(dpt, self.fx, self.fy, refineNet=self.refineNet, importer=self, maxDepth=850, minDepth=600)
         # if not hd.checkImage(1.):
         #     print("Skipping image {}, no content".format(dptFileName))
         #     continue
@@ -1969,13 +1977,64 @@ class iPadImporter(DepthImporter):
         # if self.useCache:
         #     print("Save cache data to {}".format(pickleCache))
         #     f = open(pickleCache, 'wb')
-        #     cPickle.dump((seqName, data, config), f, protocol=cPickle.HIGHEST_PROTOCOL)
+        #     pickle.dump((seqName, data, config), f, protocol=pickle.HIGHEST_PROTOCOL)
         #     f.close()
 
         # # shuffle data
         # if shuffle and rng is not None:
         #     print("Shuffling")
         #     rng.shuffle(data)
+        return NamedImgSequence_iPad(data, config)
+
+    def loadSequence_predict(self, docom=False, cube=None, minDepth=None, maxDepth=None):
+        """
+        Load an image sequence from the dataset
+        :param seqName: sequence name, e.g. subject1
+        :param Nmax: maximum number of samples to load
+        :return: returns named image sequence
+        """
+
+        config = {'cube': cube}
+
+        data = []
+        dpt = self.loadDepthMap_predict()
+        if self.args.vis == True:
+            # plot hand and gt joints
+            import matplotlib.pyplot as plt
+            import matplotlib
+            fig, ax = plt.subplots()
+            dm = ax.imshow(dpt, cmap=matplotlib.cm.jet, label='input depth map to refCOM resized 240by320')
+            fig.colorbar(dm, ax=ax)
+            # ax.plot(gtorig[:, 0], gtorig[:,1], marker='o', c='k', markersize=15)
+            # plt.savefig('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/test.png')
+            plt.title('input depth map to refCOM resized 240by320')
+            plt.show()
+
+        hd = HandDetector(dpt, self.fx, self.fy, refineNet=self.refineNet, importer=self, maxDepth=maxDepth,
+                          minDepth=minDepth) #initial COM is calculated as COM of the points inside the minDepth and maxDepth values
+        if self.args.vis == True:
+            ########################################################################################################################
+            # plot hand and gt joints
+            import matplotlib.pyplot as plt
+            import matplotlib
+            fig, ax = plt.subplots()
+            dm = ax.imshow(dpt, cmap=matplotlib.cm.jet, label='depth map thresholded for initial COM calculation')
+            fig.colorbar(dm, ax=ax)
+            ax.legend()
+            plt.title('depth map thresholded for initial COM calculation')
+            plt.show()
+            ########################################################################################################################
+        # try: #here we initialize the com with ground truth mcp middle finger of msra15 dataset [z in mm, (x,y) in pxls]
+        # dpt, M, com = hd.cropArea3D(com=gtorig[self.crop_joint_idx], size=config['cube'], docom=docom) #dpt resolution changes to 128by128
+        dpt, M, com = hd.cropArea3D(com=None, size=config['cube'],
+                                    docom=docom, vis=self.args.vis)  # dpt resolution changes to 128by128
+
+        com3D = self.jointImgTo3D_iPhone(com)
+
+        data.append(DepthFrame_iPad(dpt.astype(np.float32), M, com3D))
+
+        print("Loaded {} samples.".format(len(data)))
+
         return NamedImgSequence_iPad(data, config)
 
 

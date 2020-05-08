@@ -253,9 +253,9 @@ if __name__ == '__main__':
     joints = []
     for i in xrange(test_data.shape[0]):
         joints.append(jts[i].reshape(1, 3)*(testSeqs[0].config['cube'][2]/2.) + testSeqs[0].data[i].com)
-    print "jts = {}".format(jts)
+    print("jts = {}".format(jts))
     # 3D coordinates of the refined center = joints
-    print "joints = {}".format(joints)
+    print("joints = {}".format(joints))
 ########################################################################################################################
     # plot
     import matplotlib.pyplot as plt
@@ -289,8 +289,8 @@ if __name__ == '__main__':
     # temporary: must be changed ###########################################################################################
     color_raw = o3d.io.read_image('/home/mahdi/HVR/hvr/hand_pcl_iPhone/Tom_set_2/iPhone/hand30wall50_color.png')
     depth_raw = o3d.io.read_image('/home/mahdi/HVR/git_repos/deep-prior-pp/data/iPhone/P0/5/hand30wall50_depth.png')
-    color_raw = o3d.geometry.Image(np.asarray(color_raw))
-    rgbd_image = o3d.geometry.RGBDImage.create_from_color_and_depth(
+    color_raw = o3d.Image(np.asarray(color_raw))
+    rgbd_image = o3d.RGBDImage.create_from_color_and_depth(
         color_raw, depth_raw, depth_scale=0.529, depth_trunc=30.0, convert_rgb_to_intensity=False)
     # iPhone calibration
     h = np.asarray(color_raw).shape[0]  # 480
@@ -307,7 +307,7 @@ if __name__ == '__main__':
     __cy = 1546.5824 * yscale
     setIntrinsic = o3d.camera.PinholeCameraIntrinsic()
     setIntrinsic.set_intrinsics(width=w, height=h, fx=__fx, fy=__fy, cx=__cx, cy=__cy)
-    pcd = o3d.geometry.PointCloud.create_from_rgbd_image(
+    pcd = o3d.PointCloud.create_from_rgbd_image(
         rgbd_image,
         setIntrinsic)
     # Flip it, otherwise the pointcloud will be upside down

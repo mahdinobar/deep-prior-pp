@@ -27,7 +27,7 @@ from net.hiddenlayer import HiddenLayer, HiddenLayerParams
 from util.handdetector import HandDetector
 from util.helpers import shuffle_many_inplace
 
-matplotlib.use('Agg')  # plot to file
+# matplotlib.use('Agg')  # plot to file
 import matplotlib.pyplot as plt
 import os
 import cPickle
@@ -66,8 +66,8 @@ if __name__ == '__main__':
     for icv in xrange(len(seqs)):
         trainSeqs = [s for i, s in enumerate(seqs) if i != icv]
         testSeqs = [seqs[icv]]
-        print "training: {}".format(' '.join([s.name for s in trainSeqs]))
-        print "testing: {}".format(' '.join([s.name for s in testSeqs]))
+        print("training: {}".format(' '.join([s.name for s in trainSeqs])))
+        print("testing: {}".format(' '.join([s.name for s in testSeqs])))
 
         # create training data
         trainDataSet = MSRA15Dataset(trainSeqs, localCache=False)
@@ -219,7 +219,7 @@ if __name__ == '__main__':
         cPickle.dump(gt3D, open("./eval/{}/gt_{}.pkl".format(eval_prefix, icv), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
         cPickle.dump(joints, open("./eval/{}/result_{}.pkl".format(eval_prefix, icv), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
 
-        print "Testing baseline"
+        print("Testing baseline")
 
         #################################
         # BASELINE
@@ -241,10 +241,10 @@ if __name__ == '__main__':
 
     ###########################################
     # evaluation
-    print "Result of cross-validation:"
+    print("Result of cross-validation:")
     all_gt = []
     all_results = []
-    for icv in xrange(len(seqs)):
+    for icv in range(len(seqs)):
         all_gt.extend(cPickle.load(open("./eval/{}/gt_{}.pkl".format(eval_prefix, icv), "rb")))
         all_results.extend(cPickle.load(open("./eval/{}/result_{}.pkl".format(eval_prefix, icv), "rb")))
 
