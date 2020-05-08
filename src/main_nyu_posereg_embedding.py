@@ -56,6 +56,7 @@ def main():
     docom = True
     # di = NYUImporter('../data/NYU_fake/', refineNet=comref)
     di = NYUImporter('../data/NYU/', refineNet=comref, cacheDir='/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache')
+
     Seq1 = di.loadSequence('train', shuffle=True, rng=rng, docom=docom)
     trainSeqs = [Seq1]
 
@@ -244,6 +245,7 @@ def test_pretrained():
     # trainSeqs = [Seq1]
 
     # Seq2_1 = di.loadSequence('test_1', docom=docom)
+
     # Seq2_2 = di.loadSequence('test_2', docom=docom)
     # testSeqs = [Seq2_1, Seq2_2]
     Seq2_1 = di.loadSequence('test', docom=docom)
@@ -259,11 +261,13 @@ def test_pretrained():
     #
     # mb = (train_data.nbytes) / (1024 * 1024)
     # print("data size: {}Mb".format(mb))
-    #
+
+
     # valDataSet = NYUDataset(testSeqs)
     # val_data, val_gt3D = valDataSet.imgStackDepthOnly('test_1')
 
     testDataSet = NYUDataset(testSeqs)
+
     # test_data1, test_gt3D1 = testDataSet.imgStackDepthOnly('test_1')
     # test_data2, test_gt3D2 = testDataSet.imgStackDepthOnly('test_2')
 
@@ -372,18 +376,12 @@ def test_pretrained():
         for i in xrange(test_data.shape[0]):
             joints.append(jts[i].reshape((-1, 3))*(seq.config['cube'][2]/2.) + seq.data[i].com)
     joints = numpy.array(joints)
+
     # save results
     cPickle.dump(joints, open("./eval/{}/result_{}_{}.pkl".format(eval_prefix, os.path.split(__file__)[1], eval_prefix), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
     # test_id = 0 # id of test frame to save
     # # np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T_{}.npy'.format(test_id), np.asarray(Seq2_1.data[0].T))
     # np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/joint_{}.npy'.format(test_id), joints)
-
-    hpe = NYUHandposeEvaluation(gt3D, joints)
-    hpe.subfolder += '/'+eval_prefix+'/'
-    # print("Train samples: {}, test samples: {}".format(train_data.shape[0], len(gt3D)))
-    print("Mean error: {}mm, max error: {}mm".format(hpe.getMeanError(), hpe.getMaxError()))
-    print("{}".format([hpe.getJointMeanError(j) for j in range(joints[0].shape[0])]))
-    print("{}".format([hpe.getJointMaxError(j) for j in range(joints[0].shape[0])]))
 
 # # warning ##########################################################################################################
 #     warning_joints = []
@@ -414,6 +412,7 @@ def test_pretrained():
     hpe_base.subfolder += '/'+eval_prefix+'/'
     print("Mean error: {}mm".format(hpe_base.getMeanError()))
     hpe.plotEvaluation(eval_prefix, methodName='Our regr', baseline=[('Tompson et al.', hpe_base)])
+
 
     ind = 0
     for i in testSeqs[0].data:

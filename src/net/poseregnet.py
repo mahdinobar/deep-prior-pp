@@ -142,54 +142,6 @@ class PoseRegNetParams(NetBaseParams):
 
             self.outputDim = self.layers[-1].outputDim
 
-        elif type == 22:
-            # Try DeepPose CNN similar configuration
-            self.layers.append(ConvPoolLayerParams(inputDim=(batchSize, nChan, hIn, wIn),  # w,h,nChannel
-                                                   nFilters=32,
-                                                   filterDim=(5, 5),
-                                                   poolsize=(2, 2),
-                                                   activation=None, border_mode='same'))
-
-            self.layers.append(ConvPoolLayerParams(inputDim=self.layers[-1].outputDim,
-                                                   nFilters=8,
-                                                   filterDim=(5, 5),
-                                                   poolsize=(2, 2),
-                                                   activation=ReLU))
-
-            self.layers.append(ConvPoolLayerParams(inputDim=self.layers[-1].outputDim,
-                                                   nFilters=8,
-                                                   filterDim=(3, 3),
-                                                   poolsize=(1, 1),
-                                                   activation=ReLU))
-
-            l3out = self.layers[-1].outputDim
-            self.layers.append(HiddenLayerParams(inputDim=(l3out[0], l3out[1] * l3out[2] * l3out[3]),
-                                                 outputDim=(batchSize, 1024),
-                                                 activation=ReLU))
-
-            self.layers.append(DropoutLayerParams(inputDim=self.layers[-1].outputDim,
-                                                  outputDim=self.layers[-1].outputDim))
-
-            self.layers.append(HiddenLayerParams(inputDim=self.layers[-1].outputDim,
-                                                 outputDim=(batchSize, 1024),
-                                                 activation=ReLU))
-
-            self.layers.append(DropoutLayerParams(inputDim=self.layers[-1].outputDim,
-                                                  outputDim=self.layers[-1].outputDim))
-
-            self.layers.append(HiddenLayerParams(inputDim=self.layers[-1].outputDim,
-                                                 outputDim=(batchSize, 30),
-                                                 activation=None))
-
-            self.layers.append(HiddenLayerParams(inputDim=self.layers[-1].outputDim,
-                                                 outputDim=(batchSize, numJoints * nDims),
-                                                 activation=None))
-
-            self.outputDim = self.layers[-1].outputDim
-
-        elif type == 33:
-            pass
-
         else:
             raise NotImplementedError("not implemented")
 
