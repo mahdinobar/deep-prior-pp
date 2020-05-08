@@ -1,3 +1,4 @@
+
 """This is the main file for training hand joint classifier on NYU dataset
 
 Copyright 2015 Markus Oberweger, ICG,
@@ -35,10 +36,189 @@ from util.handpose_evaluation import NYUHandposeEvaluation
 from data.transformations import transformPoints2D
 from net.hiddenlayer import HiddenLayer, HiddenLayerParams
 from net.resnet import ResNetParams, ResNet
-from net.scalenet import ScaleNetParams
+from net.scalenet import ScaleNetParams, ScaleNet
 import numpy as np
 
 def main():
+    '''
+    load pretrained NYU model and get joint 3D estimation and save them.
+    '''
+    eval_prefix = 'NYU_train'
+    if not os.path.exists('./eval/'+eval_prefix+'/'):
+        os.makedirs('./eval/'+eval_prefix+'/')
+
+    rng = numpy.random.RandomState(23455)
+
+    print("create data")
+    aug_modes = ['com', 'rot', 'none']  # 'sc',
+
+    comref = None  # "./eval/NYU_COM_AUGMENT/net_NYU_COM_AUGMENT.pkl"
+    docom = True
+    # di = NYUImporter('../data/NYU_fake/', refineNet=comref)
+    di = NYUImporter('../data/NYU/', refineNet=comref, cacheDir='/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache')
+    Seq1 = di.loadSequence('train', shuffle=True, rng=rng, docom=docom)
+    trainSeqs = [Seq1]
+
+    Seq2_1 = di.loadSequence('test_1', docom=docom)
+    Seq2_2 = di.loadSequence('test_2', docom=docom)
+    testSeqs = [Seq2_1, Seq2_2]
+
+    # create training data
+    trainDataSet = NYUDataset(trainSeqs)
+    train_data, train_gt3D = trainDataSet.imgStackDepthOnly('train')
+    train_data_cube = numpy.asarray([Seq1.config['cube']]*train_data.shape[0], dtype='float32')
+    train_data_com = numpy.asarray([d.com for d in Seq1.data], dtype='float32')
+    train_data_M = numpy.asarray([da.T for da in Seq1.data], dtype='float32')
+    train_gt3Dcrop = numpy.asarray([d.gt3Dcrop for d in Seq1.data], dtype='float32')
+
+    mb = (train_data.nbytes) / (1024 * 1024)
+    print("data size: {}Mb".format(mb))
+
+    valDataSet = NYUDataset(testSeqs)
+    val_data, val_gt3D = valDataSet.imgStackDepthOnly('test_1')
+
+    testDataSet = NYUDataset(testSeqs)
+    test_data1, test_gt3D1 = testDataSet.imgStackDepthOnly('test_2')
+    test_data2, test_gt3D2 = testDataSet.imgStackDepthOnly('test_2')
+
+    print train_gt3D.max(), test_gt3D1.max(), train_gt3D.min(), test_gt3D1.min()
+    print train_data.max(), test_data1.max(), train_data.min(), test_data1.min()
+
+    imgSizeW = train_data.shape[3]
+    imgSizeH = train_data.shape[2]
+    nChannels = train_data.shape[1]
+
+    ###################################
+    # convert data to embedding
+    pca = PCA(n_components=30)
+    pca.fit(HandDetector.sampleRandomPoses(di, rng, train_gt3Dcrop, train_data_com, train_data_cube, 1e6,
+                                           aug_modes).reshape((-1, train_gt3D.shape[1]*3)))
+    train_gt3D_embed = pca.transform(train_gt3D.reshape((train_gt3D.shape[0], train_gt3D.shape[1]*3)))
+    test_gt3D_embed1 = pca.transform(test_gt3D1.reshape((test_gt3D1.shape[0], test_gt3D1.shape[1]*3)))
+    test_gt3D_embed2 = pca.transform(test_gt3D2.reshape((test_gt3D2.shape[0], test_gt3D2.shape[1]*3)))
+    val_gt3D_embed = pca.transform(val_gt3D.reshape((val_gt3D.shape[0], val_gt3D.shape[1]*3)))
+
+    ############################################################################
+    print("create network")
+    batchSize = 64
+
+    # poseNetParams = ResNetParams(type=1, nChan=1, wIn=128, hIn=128, batchSize=64, numJoints=14, nDims=3)
+    # poseNetParams.loadFile = "./eval/{}/{}_network_prior.pkl".format(eval_prefix, eval_prefix)
+    # poseNet = ResNet(rng, cfgParams=poseNetParams)
+
+    poseNetParams = PoseRegNetParams(type=0, nChan=nChannels, wIn=imgSizeW, hIn=imgSizeH, batchSize=batchSize,
+                                     numJoints=1, nDims=train_gt3D_embed.shape[1])
+    poseNet = PoseRegNet(rng, cfgParams=poseNetParams)
+
+    poseNetTrainerParams = PoseRegNetTrainerParams()
+    poseNetTrainerParams.batch_size = batchSize
+    poseNetTrainerParams.learning_rate = 0.001
+    poseNetTrainerParams.weightreg_factor = 0.0
+    poseNetTrainerParams.force_macrobatch_reload = True
+    poseNetTrainerParams.para_augment = True
+    poseNetTrainerParams.augment_fun_params = {'fun': 'augment_poses', 'args': {'normZeroOne': False,
+                                                                                'di': di,
+                                                                                'aug_modes': aug_modes,
+                                                                                'hd': HandDetector(train_data[0, 0].copy(), abs(di.fx), abs(di.fy), importer=di),
+                                                                                'proj': pca}}
+
+    print("setup trainer")
+    poseNetTrainer = PoseRegNetTrainer(poseNet, poseNetTrainerParams, rng, './eval/'+eval_prefix)
+    poseNetTrainer.setData(train_data, train_gt3D_embed, val_data, val_gt3D_embed)
+    poseNetTrainer.addStaticData({'val_data_y3D': val_gt3D})
+    poseNetTrainer.addStaticData({'pca_data': pca.components_, 'mean_data': pca.mean_})
+    poseNetTrainer.addManagedData({'train_data_cube': train_data_cube,
+                                   'train_data_com': train_data_com,
+                                   'train_data_M': train_data_M,
+                                   'train_gt3Dcrop': train_gt3Dcrop})
+    poseNetTrainer.compileFunctions(compileDebugFcts=False)
+
+    ###################################################################
+    # TRAIN
+    train_res = poseNetTrainer.train(n_epochs=100)
+    train_costs = train_res[0]
+    val_errs = train_res[2]
+
+    ###################################################################
+    # TEST
+    # # plot cost
+    # fig = plt.figure()
+    # plt.semilogy(train_costs)
+    # plt.show(block=False)
+    # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_cost.png')
+    #
+    # fig = plt.figure()
+    # plt.plot(numpy.asarray(val_errs).T)
+    # plt.show(block=False)
+    # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_errs.png')
+
+    # save results
+    poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
+    poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
+
+    # add prior to network
+    cfg = HiddenLayerParams(inputDim=(batchSize, train_gt3D_embed.shape[1]),
+                            outputDim=(batchSize, numpy.prod(train_gt3D.shape[1:])), activation=None)
+    pcalayer = HiddenLayer(rng, poseNet.layers[-1].output, cfg, layerNum=len(poseNet.layers))
+    pcalayer.W.set_value(pca.components_)
+    pcalayer.b.set_value(pca.mean_)
+    poseNet.layers.append(pcalayer)
+    poseNet.output = pcalayer.output
+    poseNet.cfgParams.numJoints = train_gt3D.shape[1]
+    poseNet.cfgParams.nDims = train_gt3D.shape[2]
+    poseNet.cfgParams.outputDim = pcalayer.cfgParams.outputDim
+    poseNet.save("./eval/{}/{}_network_prior.pkl".format(eval_prefix, eval_prefix))
+
+    ###################################################################
+    print("Testing ...")
+    gt3D = []
+    joints = []
+    for seq in testSeqs:
+        gt3D.extend([j.gt3Dorig for j in seq.data])
+        test_data, _ = testDataSet.imgStackDepthOnly(seq.name)
+        jts_embed = poseNet.computeOutput(test_data)
+        # Backtransform from embedding
+        # jts = pca.inverse_transform(jts_embed)
+        jts = jts_embed
+        for i in xrange(test_data.shape[0]):
+            joints.append(jts[i].reshape((-1, 3))*(seq.config['cube'][2]/2.) + seq.data[i].com)
+
+    joints = numpy.array(joints)
+
+    hpe = NYUHandposeEvaluation(gt3D, joints)
+    hpe.subfolder += '/'+eval_prefix+'/'
+    # print("Train samples: {}, test samples: {}".format(train_data.shape[0], len(gt3D)))
+    print("Mean error: {}mm, max error: {}mm".format(hpe.getMeanError(), hpe.getMaxError()))
+    print("{}".format([hpe.getJointMeanError(j) for j in range(joints[0].shape[0])]))
+    print("{}".format([hpe.getJointMaxError(j) for j in range(joints[0].shape[0])]))
+
+    # save results
+    cPickle.dump(joints, open("./eval/{}/result_{}_{}.pkl".format(eval_prefix, os.path.split(__file__)[1], eval_prefix), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
+    # test_id = 0 # id of test frame to save
+    # # np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T_{}.npy'.format(test_id), np.asarray(Seq2_1.data[0].T))
+    # np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/joint_{}.npy'.format(test_id), joints)
+    # print "Testing baseline"
+    #
+    # #################################
+    # # BASELINE
+    # # Load the evaluation
+    # data_baseline = di.loadBaseline('../data/NYU/test/test_predictions.mat', numpy.asarray(gt3D))
+    #
+    # hpe_base = NYUHandposeEvaluation(gt3D, data_baseline)
+    # hpe_base.subfolder += '/'+eval_prefix+'/'
+    # print("Mean error: {}mm".format(hpe_base.getMeanError()))
+    # hpe.plotEvaluation(eval_prefix, methodName='Our regr', baseline=[('Tompson et al.', hpe_base)])
+    #
+    # ind = 0
+    # for i in testSeqs[0].data:
+    #     if ind % 20 != 0:
+    #         ind += 1
+    #         continue
+    #     jtI = transformPoints2D(di.joints3DToImg(joints[ind]), i.T)
+    #     hpe.plotResult(i.dpt, i.gtcrop, jtI, "{}_{}".format(eval_prefix, ind))
+    #     ind += 1
+
+def test_pretrained():
     '''
     load pretrained NYU model and get joint 3D estimation and save them.
     '''
@@ -51,16 +231,22 @@ def main():
     print("create data")
     aug_modes = ['com', 'rot', 'none']  # 'sc',
 
-    comref = None  # "./eval/NYU_COM_AUGMENT/net_NYU_COM_AUGMENT.pkl"
-    docom = False
-    # di = NYUImporter('../data/NYU_fake/', refineNet=comref)
-    di = NYUImporter('../data/NYU_fake/', refineNet=comref, cacheDir='/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache')
+    # comref = None  # "./eval/NYU_COM_AUGMENT/net_NYU_COM_AUGMENT.pkl"
+    batchSizeCOM = 64
+    poseNetParams = ScaleNetParams(type=1, nChan=1, wIn=128, hIn=128, batchSize=batchSizeCOM,
+                                   resizeFactor=2, numJoints=1, nDims=3)
+    comref = ScaleNet(rng, cfgParams=poseNetParams)
+    comref.load("/home/mahdi/HVR/git_repos/deep-prior-pp/src/eval/NYU_COM_AUGMENT/net_NYU_COM_AUGMENT.pkl")
+    docom = True
+
+    di = NYUImporter('../data/NYU/', refineNet=comref)
     # Seq1 = di.loadSequence('train', shuffle=True, rng=rng, docom=docom)
     # trainSeqs = [Seq1]
 
-    Seq2_1 = di.loadSequence('test_1', docom=docom)
+    # Seq2_1 = di.loadSequence('test_1', docom=docom)
     # Seq2_2 = di.loadSequence('test_2', docom=docom)
     # testSeqs = [Seq2_1, Seq2_2]
+    Seq2_1 = di.loadSequence('test', docom=docom)
     testSeqs = [Seq2_1]
 
     # # create training data
@@ -70,26 +256,26 @@ def main():
     # train_data_com = numpy.asarray([d.com for d in Seq1.data], dtype='float32')
     # train_data_M = numpy.asarray([da.T for da in Seq1.data], dtype='float32')
     # train_gt3Dcrop = numpy.asarray([d.gt3Dcrop for d in Seq1.data], dtype='float32')
-
+    #
     # mb = (train_data.nbytes) / (1024 * 1024)
     # print("data size: {}Mb".format(mb))
-
-    valDataSet = NYUDataset(testSeqs)
-    val_data, val_gt3D = valDataSet.imgStackDepthOnly('test_1')
+    #
+    # valDataSet = NYUDataset(testSeqs)
+    # val_data, val_gt3D = valDataSet.imgStackDepthOnly('test_1')
 
     testDataSet = NYUDataset(testSeqs)
-    test_data1, test_gt3D1 = testDataSet.imgStackDepthOnly('test_1')
+    # test_data1, test_gt3D1 = testDataSet.imgStackDepthOnly('test_1')
     # test_data2, test_gt3D2 = testDataSet.imgStackDepthOnly('test_2')
 
     # print train_gt3D.max(), test_gt3D1.max(), train_gt3D.min(), test_gt3D1.min()
     # print train_data.max(), test_data1.max(), train_data.min(), test_data1.min()
-
+    #
     # imgSizeW = train_data.shape[3]
     # imgSizeH = train_data.shape[2]
     # nChannels = train_data.shape[1]
 
-    ####################################
-    # convert data to embedding
+    # # ####################################
+    # # convert data to embedding
     # pca = PCA(n_components=30)
     # pca.fit(HandDetector.sampleRandomPoses(di, rng, train_gt3Dcrop, train_data_com, train_data_cube, 1e6,
     #                                        aug_modes).reshape((-1, train_gt3D.shape[1]*3)))
@@ -109,7 +295,8 @@ def main():
     # poseNetParams = PoseRegNetParams(type=0, nChan=nChannels, wIn=imgSizeW, hIn=imgSizeH, batchSize=batchSize,
     #                                  numJoints=1, nDims=train_gt3D_embed.shape[1])
     # poseNet = PoseRegNet(rng, cfgParams=poseNetParams)
-    #
+
+    # ##################################################################
     # poseNetTrainerParams = PoseRegNetTrainerParams()
     # poseNetTrainerParams.batch_size = batchSize
     # poseNetTrainerParams.learning_rate = 0.001
@@ -132,31 +319,33 @@ def main():
     #                                'train_data_M': train_data_M,
     #                                'train_gt3Dcrop': train_gt3Dcrop})
     # poseNetTrainer.compileFunctions(compileDebugFcts=False)
-    #
+
     # ###################################################################
     # # TRAIN
     # train_res = poseNetTrainer.train(n_epochs=100)
     # train_costs = train_res[0]
     # val_errs = train_res[2]
-    #
-    # ###################################################################
-    # # TEST
-    # # plot cost
+
+    ###################################################################
+    # TEST
+    # plot cost
     # fig = plt.figure()
     # plt.semilogy(train_costs)
-    # plt.show(block=False)
+    # # plt.show(block=False)
     # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_cost.png')
-    #
+    # np.save("./eval/{}/{}_train_costs.pkl".format(eval_prefix, eval_prefix), train_costs)
+
     # fig = plt.figure()
     # plt.plot(numpy.asarray(val_errs).T)
-    # plt.show(block=False)
+    # # plt.show(block=False)
     # fig.savefig('./eval/'+eval_prefix+'/'+eval_prefix+'_errs.png')
-    #
-    # # save results
+    # np.save("./eval/{}/{}_val_errs.pkl".format(eval_prefix, eval_prefix), numpy.asarray(val_errs).T)
+
+    # save results
     # poseNet.save("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
     # poseNet.load("./eval/{}/net_{}.pkl".format(eval_prefix, eval_prefix))
-    #
-    # # add prior to network
+
+    # add prior to network
     # cfg = HiddenLayerParams(inputDim=(batchSize, train_gt3D_embed.shape[1]),
     #                         outputDim=(batchSize, numpy.prod(train_gt3D.shape[1:])), activation=None)
     # pcalayer = HiddenLayer(rng, poseNet.layers[-1].output, cfg, layerNum=len(poseNet.layers))
@@ -182,43 +371,58 @@ def main():
         jts = jts_embed
         for i in xrange(test_data.shape[0]):
             joints.append(jts[i].reshape((-1, 3))*(seq.config['cube'][2]/2.) + seq.data[i].com)
-
     joints = numpy.array(joints)
-    test_id = 0 # id of test frame to save
-    # np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T_{}.npy'.format(test_id), np.asarray(Seq2_1.data[0].T))
-    np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/joint_{}.npy'.format(test_id), joints)
+    # save results
+    cPickle.dump(joints, open("./eval/{}/result_{}_{}.pkl".format(eval_prefix, os.path.split(__file__)[1], eval_prefix), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
+    # test_id = 0 # id of test frame to save
+    # # np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/T_{}.npy'.format(test_id), np.asarray(Seq2_1.data[0].T))
+    # np.save('/home/mahdi/HVR/git_repos/deep-prior-pp/src/cache/joint_{}.npy'.format(test_id), joints)
 
-    # hpe = NYUHandposeEvaluation(gt3D, joints)
-    # hpe.subfolder += '/'+eval_prefix+'/'
-    # # print("Train samples: {}, test samples: {}".format(train_data.shape[0], len(gt3D)))
-    # print("Mean error: {}mm, max error: {}mm".format(hpe.getMeanError(), hpe.getMaxError()))
-    # print("{}".format([hpe.getJointMeanError(j) for j in range(joints[0].shape[0])]))
-    # print("{}".format([hpe.getJointMaxError(j) for j in range(joints[0].shape[0])]))
-    #
-    # # save results
-    # cPickle.dump(joints, open("./eval/{}/result_{}_{}.pkl".format(eval_prefix, os.path.split(__file__)[1], eval_prefix), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
-    #
-    # print "Testing baseline"
-    #
-    # #################################
-    # # BASELINE
-    # # Load the evaluation
-    # data_baseline = di.loadBaseline('../data/NYU/test/test_predictions.mat', numpy.asarray(gt3D))
-    #
-    # hpe_base = NYUHandposeEvaluation(gt3D, data_baseline)
-    # hpe_base.subfolder += '/'+eval_prefix+'/'
-    # print("Mean error: {}mm".format(hpe_base.getMeanError()))
-    # hpe.plotEvaluation(eval_prefix, methodName='Our regr', baseline=[('Tompson et al.', hpe_base)])
-    #
-    # ind = 0
-    # for i in testSeqs[0].data:
-    #     if ind % 20 != 0:
-    #         ind += 1
-    #         continue
-    #     jtI = transformPoints2D(di.joints3DToImg(joints[ind]), i.T)
-    #     hpe.plotResult(i.dpt, i.gtcrop, jtI, "{}_{}".format(eval_prefix, ind))
-    #     ind += 1
+    hpe = NYUHandposeEvaluation(gt3D, joints)
+    hpe.subfolder += '/'+eval_prefix+'/'
+    # print("Train samples: {}, test samples: {}".format(train_data.shape[0], len(gt3D)))
+    print("Mean error: {}mm, max error: {}mm".format(hpe.getMeanError(), hpe.getMaxError()))
+    print("{}".format([hpe.getJointMeanError(j) for j in range(joints[0].shape[0])]))
+    print("{}".format([hpe.getJointMaxError(j) for j in range(joints[0].shape[0])]))
 
+# # warning ##########################################################################################################
+#     warning_joints = []
+#     for seq in testSeqs:
+#         gt3D.extend([j.gt3Dorig for j in seq.data])
+#         test_data, _ = testDataSet.imgStackDepthOnly(seq.name)
+#         warning_jts = jts_embed
+#         for i in xrange(test_data.shape[0]):
+#             warning_joints.append(warning_jts[i].reshape((-1, 3))*(seq.config['cube'][2]/2.) + seq.data[i].com)
+#     warning_joints = numpy.array(warning_joints)
+#     warning_hpe = NYUHandposeEvaluation(gt3D, warning_joints)
+#     warning_hpe.subfolder += '/'+eval_prefix+'/'
+#     # print("Train samples: {}, test samples: {}".format(train_data.shape[0], len(gt3D)))
+#     print("warning_Mean error: {}mm, max error: {}mm".format(warning_hpe.getMeanError(), warning_hpe.getMaxError()))
+#     print("{}".format([warning_hpe.getJointMeanError(j) for j in range(warning_joints[0].shape[0])]))
+#     print("{}".format([warning_hpe.getJointMaxError(j) for j in range(warning_joints[0].shape[0])]))
+#     cPickle.dump(warning_joints, open("./eval/{}/warning_result_{}_{}.pkl".format(eval_prefix, os.path.split(__file__)[1], eval_prefix), "wb"), protocol=cPickle.HIGHEST_PROTOCOL)
+# # warning ##########################################################################################################
+
+    print "Testing baseline"
+
+    #################################
+    # BASELINE
+    # Load the evaluation
+    data_baseline = di.loadBaseline('../data/NYU/test/test_predictions.mat', numpy.asarray(gt3D))
+
+    hpe_base = NYUHandposeEvaluation(gt3D, data_baseline)
+    hpe_base.subfolder += '/'+eval_prefix+'/'
+    print("Mean error: {}mm".format(hpe_base.getMeanError()))
+    hpe.plotEvaluation(eval_prefix, methodName='Our regr', baseline=[('Tompson et al.', hpe_base)])
+
+    ind = 0
+    for i in testSeqs[0].data:
+        if ind % 20 != 0:
+            ind += 1
+            continue
+        jtI = transformPoints2D(di.joints3DToImg(joints[ind]), i.T)
+        hpe.plotResult(i.dpt, i.gtcrop, jtI, "{}_{}".format(eval_prefix, ind))
+        ind += 1
 
 
 if __name__ == '__main__':

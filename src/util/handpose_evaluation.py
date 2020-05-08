@@ -267,7 +267,7 @@ class HandposeEvaluation(object):
             bbea = (lgd,)
         else:
             bbea = None
-        plt.show(block=False)
+        # plt.show(block=False)
         fig.savefig('{}/{}_frameswithin.pdf'.format(self.subfolder, basename), bbox_extra_artists=bbea,
                     bbox_inches='tight')
         plt.close(fig)
@@ -308,7 +308,7 @@ class HandposeEvaluation(object):
             bbea = (lgd,)
         else:
             bbea = None
-        plt.show(block=False)
+        # plt.show(block=False)
         fig.savefig('{}/{}_joint_mean.pdf'.format(self.subfolder, basename), bbox_extra_artists=bbea,
                     bbox_inches='tight')
         plt.close(fig)
@@ -340,7 +340,7 @@ class HandposeEvaluation(object):
             bbea = (lgd,)
         else:
             bbea = None
-        plt.show(block=False)
+        # plt.show(block=False)
         fig.savefig('{}/{}_joint_max.pdf'.format(self.subfolder, basename), bbox_extra_artists=bbea,
                     bbox_inches='tight')
         plt.close(fig)
@@ -429,7 +429,7 @@ class HandposeEvaluation(object):
                 ax.axis('off')
                 ax.imshow(imgcopy)
                 plt.tight_layout(pad=0)
-                plt.show(block=block)
+                # plt.show(block=block)
                 return imgcopy
 
     def plotJoints(self, ax, joint, color='nice', jcolor=None, annoscale=1):

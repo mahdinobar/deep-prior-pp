@@ -537,7 +537,7 @@ class MSRA15Importer(DepthImporter):
     - P8/4: 168
     """
 
-    def __init__(self, basepath, useCache=True, cacheDir='/media/mahdi/276bbbd7-a9de-4030-857d-34c615ff4e0a/mahdi_hdd/DPpp_data/', refineNet=None, detectorNet=None, derotNet=None, hand=None):
+    def __init__(self, basepath, useCache=True, cacheDir='/media/mahdi/276bbbd7-a9de-4030-857d-34c615ff4e0a/mahdi_hdd/DPpp_data/cache/', refineNet=None, detectorNet=None, derotNet=None, hand=None):
         """
         Constructor
         :param basepath: base path of the MSRA dataset
@@ -880,7 +880,7 @@ class NYUImporter(DepthImporter):
     provide functionality to load data from the NYU hand dataset
     """
 
-    def __init__(self, basepath, useCache=True, cacheDir='/media/mahdi/276bbbd7-a9de-4030-857d-34c615ff4e0a/mahdi_hdd/DPpp_data/', refineNet=None,
+    def __init__(self, basepath, useCache=True, cacheDir='/media/mahdi/276bbbd7-a9de-4030-857d-34c615ff4e0a/mahdi_hdd/DPpp_data/cache/', refineNet=None,
                  allJoints=False, hand=None):
         """
         Constructor
